@@ -1,7 +1,7 @@
 
 ---
 # Rancang Bangun Sistem Pakar Kerusakan Pada Vespa Matic Menggunakan Metode Forward Chaining Berbasis Web dan Mobile 
-# (Sebagai pemenuhan Tugas Akhir Teknologi Informasi)
+
 
 ## Informasi
 - **Nama** : Istya Yulia Amesti
