@@ -1,37 +1,24 @@
-// src/services/DiagnosaService.ts
-import ApiService from './api-service';
-import { Diagnosa, ApiResponse } from '@/types';
+import api from './api-service';
+import { Diagnosa } from '@/types';
 
-class DiagnosaService {
+const DiagnosaService = {
   async getAll(): Promise<Diagnosa[]> {
-    return await ApiService.get<Diagnosa[]>('/diagnosa');
-  }
+    const res = await api.get('/diagnosa');
+    return res.data;
+  },
 
   async getById(id: number): Promise<Diagnosa> {
-    return await ApiService.get<Diagnosa>(`/diagnosa/${id}`);
+    const res = await api.get(`/diagnosa/${id}`);
+    return res.data;
+  },
+
+  async delete(id: number) {
+    await api.delete(`/diagnosa/${id}`);
+  },
+
+  async update(id: number, data: any) {
+    await api.put(`/diagnosa/${id}`, data);
   }
+};
 
-  async delete(id: number): Promise<ApiResponse> {
-    return await ApiService.delete<ApiResponse>(`/diagnosa/${id}`);
-  }
-
-  async getMonthlyStats(): Promise<{ month: string; count: number }[]> {
-    const diagnosaList = await this.getAll();
-    
-    const monthlyData: { [key: string]: number } = {};
-    
-    diagnosaList.forEach((diagnosa) => {
-      const date = new Date(diagnosa.tanggal);
-      const monthYear = `${date.toLocaleString('id-ID', { month: 'short' })} ${date.getFullYear()}`;
-      
-      monthlyData[monthYear] = (monthlyData[monthYear] || 0) + 1;
-    });
-
-    return Object.entries(monthlyData).map(([month, count]) => ({
-      month,
-      count,
-    }));
-  }
-}
-
-export default new DiagnosaService();
+export default DiagnosaService;

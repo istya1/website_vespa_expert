@@ -48,20 +48,24 @@ export interface Solusi {
 
 export interface Aturan {
  id_aturan: number;
-  kode_kerusakan: string;
-  threshold: number;      
+  kode_kerusakan: string;     
   gejala: Gejala[];       
+}
+
+export interface DiagnosaGejala {
+  id: number;
+  kode_gejala: string;
 }
 
 export interface Diagnosa {
   id_diagnosa: number;
   id_user: number;
-  gejala_terpilih: string;
   kode_kerusakan: string;
   persentase: number;
   tanggal: string;
   user?: User;
   kerusakan?: Kerusakan;
+  gejala: DiagnosaGejala[];
 }
 
 export interface LoginResponse {

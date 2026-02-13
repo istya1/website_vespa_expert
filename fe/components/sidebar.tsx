@@ -44,7 +44,8 @@ const MENU_ITEMS: MenuItem[] = [
       { name: 'Data Gejala', path: '/data-aturan/gejala', icon: AlertTriangle },
       { name: 'Data Kerusakan', path: '/data-aturan/kerusakan', icon: XCircle },
       { name: 'Data Solusi', path: '/data-aturan/solusi', icon: Fuel },
-      { name: 'Aturan', path: '/data-aturan/aturan', icon: Settings }
+      { name: 'Aturan', path: '/data-aturan/aturan', icon: Settings },
+      { name: ' Diagnosa', path: '/data-aturan/diagnosa', icon: Gauge }
     ]
   },
   {

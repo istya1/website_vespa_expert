@@ -30,11 +30,9 @@ export default function AturanPage() {
   const [formData, setFormData] = useState<{
     kode_kerusakan: string;
     gejala: string[];
-    threshold: number;
   }>({
     kode_kerusakan: '',
     gejala: [],
-    threshold: 50,
   });
 
   useEffect(() => {
@@ -77,7 +75,6 @@ export default function AturanPage() {
       setSelectedId(aturan.id_aturan);
       setFormData({
         kode_kerusakan: aturan.kode_kerusakan,
-        threshold: aturan.threshold,
         gejala: aturan.gejala.map(g => g.kode_gejala),
       });
     } else {
@@ -86,7 +83,6 @@ export default function AturanPage() {
       setFormData({
         kode_kerusakan: '',
         gejala: [],
-        threshold: 50,
       });
     }
     setShowModal(true);
@@ -94,7 +90,10 @@ export default function AturanPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const t = toast.loading(editMode ? 'Mengupdate aturan...' : 'Menyimpan aturan...');
+    const t = toast.loading(
+      editMode ? 'Mengupdate aturan...' : 'Menyimpan aturan...'
+    );
+
     try {
       if (editMode && selectedId) {
         await AturanService.update(selectedId, formData);
@@ -163,14 +162,13 @@ export default function AturanPage() {
               <tr>
                 <th className="px-4 py-3 text-left">Gejala</th>
                 <th className="px-4 py-3 text-left">Kerusakan</th>
-                <th className="px-4 py-3 text-center">Threshold</th>
                 <th className="px-4 py-3 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {filteredAturan.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="text-center py-6 text-gray-500">
+                  <td colSpan={3} className="text-center py-6 text-gray-500">
                     Tidak ada aturan
                   </td>
                 </tr>
@@ -185,7 +183,6 @@ export default function AturanPage() {
                         {a.gejala.map(g => g.kode_gejala).join(', ')}
                       </td>
                       <td className="px-4 py-3">{k?.nama_kerusakan}</td>
-                      <td className="px-4 py-3 text-center">{a.threshold}%</td>
                       <td className="px-4 py-3 flex justify-center gap-2">
                         <button onClick={() => openModal(a)}>
                           <Pencil size={18} />
@@ -250,7 +247,10 @@ export default function AturanPage() {
                   className="w-full border rounded px-3 py-2"
                   value={formData.kode_kerusakan}
                   onChange={e =>
-                    setFormData({ ...formData, kode_kerusakan: e.target.value })
+                    setFormData({
+                      ...formData,
+                      kode_kerusakan: e.target.value,
+                    })
                   }
                   required
                 >
@@ -261,24 +261,6 @@ export default function AturanPage() {
                     </option>
                   ))}
                 </select>
-              </div>
-
-              {/* Threshold */}
-              <div>
-                <label className="text-sm font-medium">Threshold (%)</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={100}
-                  className="w-full border rounded px-3 py-2"
-                  value={formData.threshold}
-                  onChange={e =>
-                    setFormData({
-                      ...formData,
-                      threshold: Number(e.target.value),
-                    })
-                  }
-                />
               </div>
 
               <div className="flex gap-3 pt-3">

@@ -3,7 +3,6 @@ import ApiService from './api-service';
 
 export interface AturanPayload {
   kode_kerusakan: string;
-  threshold: number;
   gejala: string[];
 }
 
@@ -20,7 +19,7 @@ class AturanService {
     data: {
       kode_kerusakan: string;
       gejala: string[];
-      threshold: number;
+      
     }
   ) {
     return await ApiService.put(`/aturan/${id}`, data);
