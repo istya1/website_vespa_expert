@@ -12,8 +12,6 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
-
-
 class AuthController extends Controller
 {
     public function login(Request $request)

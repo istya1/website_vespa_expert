@@ -11,8 +11,7 @@ class Aturan extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'kode_kerusakan',
-        'threshold'
+        'kode_kerusakan'
     ];
 
     public function gejala()

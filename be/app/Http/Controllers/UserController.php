@@ -78,54 +78,53 @@ class UserController extends Controller
         }
     }
 
-    public function show($id_user)
-    {
-        try {
-            $user = User::where('id_user', $id_user)->firstOrFail();
-            
-            // ✅ PENTING: Return user langsung, BUKAN dalam object 'data'
-            return response()->json($user);
-            
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            return response()->json([
-                'message' => 'User tidak ditemukan'
-            ], 404);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Terjadi kesalahan',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+ public function show($id_user)
+{
+    $user = User::where('id_user', $id_user)->first();
+
+    if (!$user) {
+        return response()->json([
+            'message' => 'User tidak ditemukan'
+        ], 404);
     }
+
+    return response()->json($user);
+}
+
 
  public function update(Request $request, $id_user)
 {
-    $user = User::where('id_user', $id_user)->firstOrFail();
+    try {
+        $user = User::where('id_user', $id_user)->firstOrFail();
 
-    $validated = $request->validate([
-        'nama'   => 'required|string|max:255',
-        'alamat' => 'nullable|string',
-        'no_hp'  => 'nullable|string|max:20',
-        'foto'   => 'nullable|image|max:2048',
-    ]);
+        // Validasi - foto sebagai string atau file
+        $validated = $request->validate([
+            'nama'        => 'sometimes|required|string|max:255',
+            'alamat'      => 'nullable|string',
+            'no_hp'       => 'nullable|string|max:20',
+            'jenis_motor' => 'nullable|string|max:50',
+            'foto'        => 'nullable|string', // Ubah ke string jika dikirim sebagai base64/url
+        ]);
 
-    if ($request->hasFile('foto')) {
-        if ($user->foto && Storage::disk('public')->exists($user->foto)) {
-            Storage::disk('public')->delete($user->foto);
-        }
+        // Hanya update field yang dikirim
+        $user->update($validated);
 
-        $path = $request->file('foto')->store('users', 'public');
-        $validated['foto'] = $path;
+        return response()->json([
+            'message' => 'Profil berhasil diperbarui',
+            'data' => $user
+        ], 200);
+        
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        return response()->json([
+            'message' => 'User tidak ditemukan'
+        ], 404);
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Gagal update profil',
+            'error' => $e->getMessage()
+        ], 500);
     }
-
-    $user->update($validated);
-
-    return response()->json([
-        'message' => 'Profil berhasil diperbarui',
-        'data' => $user
-    ], 200);
 }
-
 
     public function destroy(User $id_user)
     {

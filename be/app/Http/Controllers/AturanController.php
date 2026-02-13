@@ -9,25 +9,26 @@ use Illuminate\Support\Facades\DB;
 
 class AturanController extends Controller
 {
+    // GET semua aturan + gejala
     public function index()
     {
         return response()->json(
-            Aturan::with('gejala')->get()
+            Aturan::with('gejala.gejala', 'kerusakan')->get()
         );
     }
 
+    // POST tambah aturan
     public function store(Request $request)
     {
         $request->validate([
             'kode_kerusakan' => 'required',
-            'threshold' => 'required|integer',
-            'gejala' => 'required|array'
+            'gejala' => 'required|array|min:1'
         ]);
 
         DB::transaction(function () use ($request) {
+
             $aturan = Aturan::create([
-                'kode_kerusakan' => $request->kode_kerusakan,
-                'threshold' => $request->threshold
+                'kode_kerusakan' => $request->kode_kerusakan
             ]);
 
             foreach ($request->gejala as $kodeGejala) {
@@ -38,9 +39,46 @@ class AturanController extends Controller
             }
         });
 
-        return response()->json(['message' => 'Aturan berhasil disimpan'], 201);
+        return response()->json([
+            'message' => 'Aturan berhasil disimpan'
+        ], 201);
     }
 
+    //UPDATE
+    public function update(Request $request, $id)
+    {
+        $aturan = Aturan::findOrFail($id);
+
+        $request->validate([
+            'kode_kerusakan' => 'required',
+            'gejala' => 'required|array'
+        ]);
+
+        DB::transaction(function () use ($request, $aturan) {
+
+            // update kerusakan (kalau berubah)
+            $aturan->update([
+                'kode_kerusakan' => $request->kode_kerusakan,
+            ]);
+
+            // hapus gejala lama
+            AturanGejala::where('id_aturan', $aturan->id_aturan)->delete();
+
+            // simpan gejala baru
+            foreach ($request->gejala as $kodeGejala) {
+                AturanGejala::create([
+                    'id_aturan' => $aturan->id_aturan,
+                    'kode_gejala' => $kodeGejala
+                ]);
+            }
+        });
+
+        return response()->json([
+            'message' => 'Aturan berhasil diperbarui'
+        ]);
+    }
+
+    // DELETE aturan
     public function destroy($id)
     {
         DB::transaction(function () use ($id) {
@@ -48,6 +86,8 @@ class AturanController extends Controller
             Aturan::where('id_aturan', $id)->delete();
         });
 
-        return response()->json(['message' => 'Aturan berhasil dihapus']);
+        return response()->json([
+            'message' => 'Aturan berhasil dihapus'
+        ]);
     }
 }

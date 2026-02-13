@@ -23,9 +23,10 @@ use Kreait\Firebase\Messaging\Notification as FirebaseNotification;
 |--------------------------------------------------------------------------
 */
 
-Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
-Route::post('/login-pengguna', [AuthController::class, 'loginPengguna']);
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 /*
 |--------------------------------------------------------------------------
@@ -52,19 +53,22 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('solusi', SolusiController::class);
 
     // ATURAN
-
     Route::prefix('aturan')->group(function () {
         Route::get('/', [AturanController::class, 'index']);
         Route::post('/', [AturanController::class, 'store']);
         Route::get('{id}', [AturanController::class, 'show']);
         Route::delete('{id}', [AturanController::class, 'destroy']);
+        Route::put('{id}', [AturanController::class, 'update']);
     });
 
-
     // DIAGNOSA
-    Route::get('diagnosa', [DiagnosaController::class, 'index']);
-    Route::get('diagnosa/{id}', [DiagnosaController::class, 'show']);
-    Route::delete('diagnosa/{id}', [DiagnosaController::class, 'destroy']);
+    Route::prefix('diagnosa')->group(function () {
+        Route::get('/', [DiagnosaController::class, 'index']);
+        Route::post('/', [DiagnosaController::class, 'store']);
+        Route::get('{id}', [DiagnosaController::class, 'show']);
+        Route::put('{id}', [DiagnosaController::class, 'update']);
+        Route::delete('{id}', [DiagnosaController::class, 'destroy']);
+    });
 
     // VESPAPEDIA
     Route::apiResource('vespa-pedia', VespaPediaController::class);
