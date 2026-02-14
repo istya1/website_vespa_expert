@@ -26,6 +26,7 @@ class KerusakanController extends Controller
     {
         $request->validate([
             'nama_kerusakan' => 'required|max:100',
+            'solusi' => 'required',
             'jenis_motor' => 'required|in:Primavera 150,Primavera S 150,LX 125,Sprint 150,Sprint S 150',
         ]);
 
@@ -52,6 +53,7 @@ class KerusakanController extends Controller
         $kerusakan = Kerusakan::create([
             'kode_kerusakan' => $kode,
             'nama_kerusakan' => $request->nama_kerusakan,
+            'solusi' => $request->solusi,
             'jenis_motor' => $jenisMotor,
         ]);
 
@@ -67,10 +69,13 @@ class KerusakanController extends Controller
 
         $request->validate([
             'nama_kerusakan' => 'required|max:100',
+            'solusi' => 'required',
+               
         ]);
 
         $kerusakan->update([
             'nama_kerusakan' => $request->nama_kerusakan,
+            'solusi' => $request->solusi,
         ]);
 
         return response()->json([

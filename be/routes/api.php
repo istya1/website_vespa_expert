@@ -12,6 +12,7 @@ use App\Http\Controllers\UserServiceReminderController;
 use App\Http\Controllers\AturanController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\VespaCareController;
+use App\Http\Controllers\KerusakanDiagnosisController;
 use App\Http\Controllers\SolusiController;
 use Kreait\Firebase\Factory;
 use Kreait\Firebase\Messaging\CloudMessage;
@@ -87,6 +88,22 @@ Route::middleware('auth:sanctum')->group(function () {
     // PASSWORD
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+
+    // KERUSAKAN DIAGNOSIS
+   Route::prefix('mobile')->middleware('auth:sanctum')->group(function () {
+
+    Route::get('/gejala', [GejalaController::class, 'index']);
+    Route::get('/aturan', [AturanController::class, 'index']);
+    Route::get('/vespa-smart-data', [KerusakanDiagnosisController::class, 'getVespaSmartData']);
+    Route::get('/kerusakan/{kode}', [KerusakanDiagnosisController::class, 'getDetailKerusakan']);
+    Route::post('/proses-diagnosis', [KerusakanDiagnosisController::class, 'prosesDiagnosis']);
+
+    Route::get('/diagnosa', [DiagnosaController::class, 'index']);
+    Route::post('/diagnosa', [DiagnosaController::class, 'storeMobile']);
+    Route::get('/diagnosa/{id}', [DiagnosaController::class, 'show']);
+
+});
+
 
     // TESTING FCM
     Route::get('/test-fcm-topic', function () {
