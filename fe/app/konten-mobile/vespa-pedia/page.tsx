@@ -62,7 +62,7 @@ export default function VespaPediaPage() {
     if (pedia) {
       setEditMode(true);
       setSelectedPedia(pedia.id);
-      setCurrentImage(pedia.gambar ? `/storage/vespa-pedia/${pedia.gambar}` : null);
+      setCurrentImage(pedia.gambar_url ?? null);
       setFormData({
         judul: pedia.judul,
         jenis_motor: pedia.jenis_motor as 'Primavera 150' | 'Primavera S 150' | 'LX 125' | 'Sprint 150' | 'Sprint S 150',
@@ -100,7 +100,16 @@ export default function VespaPediaPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setFormData({ ...formData, gambar: file });
+
+      // Rename file: ganti spasi dan karakter aneh dengan underscore
+      let newFileName = file.name
+        .replace(/\s+/g, '_')           // spasi -> underscore
+        .replace(/[^\w\s.-]/gi, '_')    // karakter aneh -> underscore
+        .toLowerCase();                  // lowercase
+
+      const renamedFile = new File([file], newFileName, { type: file.type });
+
+      setFormData({ ...formData, gambar: renamedFile });
       setPreviewImage(URL.createObjectURL(file));
     }
   };
@@ -243,13 +252,14 @@ export default function VespaPediaPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{pedia.kategori}</td>
                       {/* KOLOM GAMBAR - INI YANG HARUS DIGANTI */}
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {pedia.gambar ? (
+                        {pedia.gambar_url ? (
                           <img
-                            src={`http://localhost:8000/storage/vespa-pedia/${pedia.gambar}`}
+                            src={pedia.gambar_url}
                             alt={pedia.judul}
                             className="h-32 w-48 object-cover border-4 border-white"
                             onError={(e) => {
-                              e.currentTarget.src = "https://via.placeholder.com/480x320?text=Gambar+Gagal+Dimuat";
+                              e.currentTarget.src =
+                                "https://via.placeholder.com/480x320?text=Gambar+Gagal+Dimuat";
                             }}
                           />
                         ) : (
@@ -258,6 +268,7 @@ export default function VespaPediaPage() {
                           </div>
                         )}
                       </td>
+
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <span className={`px-3 py-1 text-xs font-semibold rounded-full ${pedia.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
                           {pedia.status}
@@ -308,18 +319,20 @@ export default function VespaPediaPage() {
                     </div>
                   </div>
                   {/* GAMBAR DI MOBILE */}
-                  {pedia.gambar && (
-                    <div className="mt-4 ">
+                  {pedia.gambar_url && (
+                    <div className="mt-4">
                       <img
-                        src={`http://localhost:8000/storage/vespa-pedia/${pedia.gambar}`}
+                        src={pedia.gambar_url}
                         alt={pedia.judul}
                         className="w-full h-80 object-cover"
                         onError={(e) => {
-                          e.currentTarget.src = "https://via.placeholder.com/600x400?text=No+Image";
+                          e.currentTarget.src =
+                            "https://via.placeholder.com/600x400?text=No+Image";
                         }}
                       />
                     </div>
                   )}
+
                   <div className="flex justify-between items-center text-sm mt-3">
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${pedia.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
                       {pedia.status}

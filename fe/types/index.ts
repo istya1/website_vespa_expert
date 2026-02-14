@@ -110,6 +110,7 @@ export interface VespaPedia {
   jenis_motor: JenisMotor;
   kategori: KategoriPedia;
   gambar: string | null;
+  gambar_url?: string;
   konten: string;
   urutan: number;
   status: StatusPedia;
