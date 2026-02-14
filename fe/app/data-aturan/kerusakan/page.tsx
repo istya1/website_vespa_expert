@@ -23,10 +23,11 @@ export default function KerusakanPage() {
 
   const [formData, setFormData] = useState<{
   nama_kerusakan: string;
-  
+  solusi: string;
   jenis_motor: 'Primavera 150' | 'Primavera S 150' | 'LX 125' | 'Sprint 150' | 'Sprint S 150';
 }>({
   nama_kerusakan: '',
+  solusi: '',
   jenis_motor: 'Primavera 150',
 });
 
@@ -53,12 +54,14 @@ export default function KerusakanPage() {
     setSelectedKerusakan(kerusakan.kode_kerusakan);
     setFormData({
       nama_kerusakan: kerusakan.nama_kerusakan,
+      solusi: kerusakan.solusi || '',
       jenis_motor: kerusakan.jenis_motor as typeof formData.jenis_motor,
     });
   } else {
     setEditMode(false);
     setFormData({
       nama_kerusakan: '',
+      solusi: '',
       jenis_motor: activeTab, 
     });
   }
@@ -171,6 +174,9 @@ export default function KerusakanPage() {
             Nama Kerusakan
           </th>
           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            Solusi
+          </th>
+          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
             Aksi
           </th>
         </tr>
@@ -184,6 +190,9 @@ export default function KerusakanPage() {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900">
                       {kerusakan.nama_kerusakan}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {kerusakan.solusi}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center gap-2">
@@ -271,6 +280,16 @@ export default function KerusakanPage() {
                   onChange={(e) => setFormData({ ...formData, nama_kerusakan: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                   placeholder="Masukkan nama kerusakan"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Solusi <span className="text-red-500">*</span></label>
+                <textarea
+                  value={formData.solusi}
+                  onChange={(e) => setFormData({ ...formData, solusi: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                  placeholder="Masukkan solusi kerusakan"
                   required
                 />
               </div>
