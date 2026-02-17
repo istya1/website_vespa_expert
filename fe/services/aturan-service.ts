@@ -14,18 +14,13 @@ class AturanService {
   async create(data: AturanPayload) {
     return await ApiService.post('/aturan', data);
   }
-  async update(
-    id: number,
-    data: {
-      kode_kerusakan: string;
-      gejala: string[];
-      
-    }
-  ) {
-    return await ApiService.put(`/aturan/${id}`, data);
+
+  async update(id: number, data: AturanPayload) {
+    return await ApiService.put(`/aturan/${id}`, data);  
   }
+
   async delete(id: number) {
-    return await ApiService.delete(`/aturan/${id}`);
+    return await ApiService.delete(`/aturan/${id}`); 
   }
 }
 

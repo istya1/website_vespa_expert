@@ -1,24 +1,31 @@
+// src/services/diagnosis-service.ts
 import api from './api-service';
-import { Diagnosa } from '@/types';
+import { DiagnosisRequest, DiagnosisResponse } from '@/types';
 
-const DiagnosaService = {
-  async getAll(): Promise<Diagnosa[]> {
-    const res = await api.get('/diagnosa');
+const DiagnosisService = {
+  /**
+   * Proses diagnosis dengan iterasi
+   */
+  async prosesDiagnosis(data: DiagnosisRequest): Promise<DiagnosisResponse> {
+    const res = await api.post('/diagnosis/proses', data);
     return res.data;
   },
 
-  async getById(id: number): Promise<Diagnosa> {
-    const res = await api.get(`/diagnosa/${id}`);
+  /**
+   * Get detail kerusakan
+   */
+  async getDetailKerusakan(kodeKerusakan: string) {
+    const res = await api.get(`/diagnosis/kerusakan/${kodeKerusakan}`);
     return res.data;
   },
 
-  async delete(id: number) {
-    await api.delete(`/diagnosa/${id}`);
-  },
-
-  async update(id: number, data: any) {
-    await api.put(`/diagnosa/${id}`, data);
+  /**
+   * Get data Vespa Smart (gejala by kategori)
+   */
+  async getVespaSmartData(jenisMotor: string) {
+    const res = await api.get(`/diagnosis/vespa-smart?jenis_motor=${jenisMotor}`);
+    return res.data;
   }
 };
 
-export default DiagnosaService;
+export default DiagnosisService;

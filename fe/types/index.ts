@@ -57,15 +57,75 @@ export interface DiagnosaGejala {
   kode_gejala: string;
 }
 
-export interface Diagnosa {
+// ⭐ TABEL BARU: diagnosa_hasil
+export interface DiagnosaHasil {
+  id_diagnosa_hasil: number;
   id_diagnosa: number;
-  id_user: number;
   kode_kerusakan: string;
-  persentase: number;
-  tanggal: string;
-  user?: User;
+  prioritas: number; // 1 = utama, 2 = alternatif 1, dst
+  persentase_kecocokan: number;
+  tingkat_kepastian: string;
+  gejala_cocok: number;
+  total_gejala_aturan: number;
+  
+  // Relasi
   kerusakan?: Kerusakan;
-  gejala: DiagnosaGejala[];
+}
+
+// ========== DIAGNOSIS PROCESS ==========
+
+export interface DiagnosisRequest {
+  jenis_motor: string;
+  gejala_terpilih: string[];
+  konfirmasi_tidak_ada_gejala_lain?: boolean; // Untuk konfirmasi iterasi
+}
+
+export interface DiagnosisResponse {
+  success: boolean;
+  status_diagnosis: 'selesai' | 'perlu_iterasi' | 'perlu_konfirmasi';
+  jenis_motor: string;
+  gejala_dipilih: number;
+  gejala_terpilih_list: string[];
+  threshold_persen: number;
+  
+  // Hasil diagnosis (jika selesai)
+  hasil_diagnosis: DiagnosisResult[];
+  total_kerusakan_ditemukan: number;
+  kerusakan_utama: DiagnosisResult | null;
+  kerusakan_alternatif: DiagnosisResult[];
+  
+  // Info iterasi (jika belum selesai)
+  perlu_konfirmasi: boolean;
+  aturan_kandidat: AturanKandidat[];
+  kandidat_gejala_berikutnya: Gejala[];
+  rekomendasi_pertanyaan: string;
+  pesan: string;
+}
+
+export interface DiagnosisResult {
+  id_aturan: number;
+  kode_kerusakan: string;
+  nama_kerusakan: string;
+  solusi: string;
+  persentase_kecocokan: number;
+  gejala_cocok: number;
+  total_gejala_aturan: number;
+  gejala_yang_cocok: string[];
+  semua_gejala_aturan: string[];
+  prioritas: number;
+  tingkat_kepastian: string;
+}
+
+export interface AturanKandidat {
+  id_aturan: number;
+  kode_kerusakan: string;
+  nama_kerusakan: string;
+  persentase_saat_ini: number;
+  gejala_cocok: number;
+  total_gejala_aturan: number;
+  kekurangan: number;
+  gejala_yang_sudah_cocok: string[];
+  gejala_yang_perlu_ditanyakan: string[];
 }
 
 export interface LoginResponse {
