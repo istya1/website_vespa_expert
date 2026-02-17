@@ -14,13 +14,14 @@ class Aturan extends Model
         'kode_kerusakan'
     ];
 
-    public function gejala()
-    {
-        return $this->hasMany(AturanGejala::class, 'id_aturan', 'id_aturan');
-    }
+public function gejala()
+{
+    return $this->hasMany(AturanGejala::class, 'id_aturan', 'id_aturan');
+}
 
-    public function kerusakan()
-    {
-        return $this->belongsTo(Kerusakan::class, 'kode_kerusakan', 'kode_kerusakan');
-    }
+public function kerusakan()
+{
+    return $this->belongsTo(Kerusakan::class, 'kode_kerusakan', 'kode_kerusakan');
+}
+
 }

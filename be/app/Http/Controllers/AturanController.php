@@ -13,7 +13,8 @@ class AturanController extends Controller
     public function index()
     {
         return response()->json(
-            Aturan::with('gejala.gejala', 'kerusakan')->get()
+         Aturan::with(['kerusakan', 'gejala.gejala'])->get()
+
         );
     }
 
@@ -46,37 +47,35 @@ class AturanController extends Controller
 
     //UPDATE
     public function update(Request $request, $id)
-    {
-        $aturan = Aturan::findOrFail($id);
+{
+    $aturan = Aturan::findOrFail($id);
 
-        $request->validate([
-            'kode_kerusakan' => 'required',
-            'gejala' => 'required|array'
+    $request->validate([
+        'kode_kerusakan' => 'required',
+        'gejala' => 'required|array|min:1'
+    ]);
+
+    DB::transaction(function () use ($request, $aturan) {
+
+        $aturan->update([
+            'kode_kerusakan' => $request->kode_kerusakan,
         ]);
 
-        DB::transaction(function () use ($request, $aturan) {
+        AturanGejala::where('id_aturan', $aturan->id_aturan)->delete();
 
-            // update kerusakan (kalau berubah)
-            $aturan->update([
-                'kode_kerusakan' => $request->kode_kerusakan,
+        foreach ($request->gejala as $kodeGejala) {
+            AturanGejala::create([
+                'id_aturan' => $aturan->id_aturan,
+                'kode_gejala' => $kodeGejala
             ]);
+        }
+    });
 
-            // hapus gejala lama
-            AturanGejala::where('id_aturan', $aturan->id_aturan)->delete();
+    $aturan->load(['kerusakan', 'gejala.gejala']);
 
-            // simpan gejala baru
-            foreach ($request->gejala as $kodeGejala) {
-                AturanGejala::create([
-                    'id_aturan' => $aturan->id_aturan,
-                    'kode_gejala' => $kodeGejala
-                ]);
-            }
-        });
+    return response()->json($aturan);
+}
 
-        return response()->json([
-            'message' => 'Aturan berhasil diperbarui'
-        ]);
-    }
 
     // DELETE aturan
     public function destroy($id)

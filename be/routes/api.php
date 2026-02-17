@@ -12,6 +12,7 @@ use App\Http\Controllers\UserServiceReminderController;
 use App\Http\Controllers\AturanController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\VespaCareController;
+use App\Http\Controllers\RiwayatDiagnosisController;
 use App\Http\Controllers\KerusakanDiagnosisController;
 use App\Http\Controllers\SolusiController;
 use Kreait\Firebase\Factory;
@@ -85,24 +86,24 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('user-reminders', [UserServiceReminderController::class, 'index']);
     Route::post('user-reminders/{id}/send-notification', [UserServiceReminderController::class, 'sendNotification']);
 
-    // PASSWORD
-    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
-    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
-
     // KERUSAKAN DIAGNOSIS
-   Route::prefix('mobile')->middleware('auth:sanctum')->group(function () {
+    Route::prefix('mobile')->middleware('auth:sanctum')->group(function () {
 
-    Route::get('/gejala', [GejalaController::class, 'index']);
-    Route::get('/aturan', [AturanController::class, 'index']);
-    Route::get('/vespa-smart-data', [KerusakanDiagnosisController::class, 'getVespaSmartData']);
-    Route::get('/kerusakan/{kode}', [KerusakanDiagnosisController::class, 'getDetailKerusakan']);
-    Route::post('/proses-diagnosis', [KerusakanDiagnosisController::class, 'prosesDiagnosis']);
+        Route::get('/gejala', [GejalaController::class, 'index']);
+        Route::get('/aturan', [AturanController::class, 'index']);
+        Route::get('/vespa-smart-data', [KerusakanDiagnosisController::class, 'getVespaSmartData']);
+        Route::get('/kerusakan/{kode}', [KerusakanDiagnosisController::class, 'getDetailKerusakan']);
+        Route::post('/proses-diagnosis', [KerusakanDiagnosisController::class, 'prosesDiagnosis']);
 
-    Route::get('/diagnosa', [DiagnosaController::class, 'index']);
-    Route::post('/diagnosa', [DiagnosaController::class, 'storeMobile']);
-    Route::get('/diagnosa/{id}', [DiagnosaController::class, 'show']);
+        Route::get('/diagnosa', [DiagnosaController::class, 'index']);
+        Route::post('/diagnosa', [DiagnosaController::class, 'storeMobile']);
+        Route::get('/diagnosa/{id}', [DiagnosaController::class, 'show']);
 
-});
+        Route::get('/mobile/diagnosa',        [RiwayatDiagnosisController::class, 'index']);
+        Route::post('/mobile/diagnosa',       [RiwayatDiagnosisController::class, 'store']);
+        Route::get('/mobile/diagnosa/{id}',   [RiwayatDiagnosisController::class, 'show']);
+        Route::delete('/mobile/diagnosa/{id}', [RiwayatDiagnosisController::class, 'destroy']);
+        });
 
 
     // TESTING FCM

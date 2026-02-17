@@ -20,7 +20,7 @@ class AturanGejala extends Model
     }
 
     public function gejala()
-    {
-        return $this->belongsTo(Gejala::class, 'kode_gejala', 'kode_gejala');
-    }
+{
+    return $this->belongsTo(Gejala::class, 'kode_gejala', 'kode_gejala');
+}
 }
