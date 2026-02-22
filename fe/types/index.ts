@@ -19,6 +19,7 @@ export interface Gejala {
   jenis_motor: string;
   kategori: string;
   deskripsi?: string;
+  bobot: number;
   created_at?: string;
   updated_at?: string;
 }

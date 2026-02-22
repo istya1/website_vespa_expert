@@ -24,11 +24,13 @@ export default function GejalaPage() {
     nama_gejala: string;
     jenis_motor: 'Primavera 150' | 'Primavera S 150' | 'LX 125' | 'Sprint 150' | 'Sprint S 150';
     kategori: string;
-    // deskripsi: string;
+    bobot: number;
+
   }>({
     nama_gejala: '',
     jenis_motor: 'Primavera 150',
     kategori: '',
+    bobot: 2,
     // deskripsi: '',
   });
 
@@ -57,6 +59,7 @@ export default function GejalaPage() {
         nama_gejala: gejala.nama_gejala,
         jenis_motor: gejala.jenis_motor as typeof formData.jenis_motor,
         kategori: gejala.kategori,
+        bobot: gejala.bobot,
         // deskripsi: gejala.deskripsi || '',
       });
     } else {
@@ -65,6 +68,7 @@ export default function GejalaPage() {
         nama_gejala: '',
         jenis_motor: activeTab, // akan otomatis sesuai tab aktif
         kategori: '',
+        bobot: 2,
         // deskripsi: '',
       });
     }
@@ -167,6 +171,7 @@ export default function GejalaPage() {
         </nav>
       </div>
 
+
       {/* Table */}
       {loading ? (
         <div className="flex flex-col justify-center items-center h-64 gap-3">
@@ -178,16 +183,19 @@ export default function GejalaPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Kode
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Nama Gejala
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Kategori
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                  Bobot
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                   Aksi
                 </th>
               </tr>
@@ -195,35 +203,55 @@ export default function GejalaPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {currentGejala.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
                     Tidak ada data gejala untuk {activeTab}
                   </td>
                 </tr>
               ) : (
                 currentGejala.map((gejala) => (
                   <tr key={gejala.kode_gejala} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {/* KODE */}
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
                       {gejala.kode_gejala}
                     </td>
+
+                    {/* NAMA */}
                     <td className="px-6 py-4 text-sm text-gray-900">
                       {gejala.nama_gejala}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+
+                    {/* KATEGORI */}
+                    <td className="px-6 py-4 text-sm text-gray-500">
                       {gejala.kategori}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center gap-2">
+
+                    {/* BOBOT */}
+                    <td className="px-6 py-4 text-sm text-center">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium
+              ${gejala.bobot === 3 ? 'bg-red-100 text-red-700' : ''}
+              ${gejala.bobot === 2 ? 'bg-yellow-100 text-yellow-700' : ''}
+              ${gejala.bobot === 1 ? 'bg-green-100 text-green-700' : ''}
+            `}
+                      >
+                        {gejala.bobot === 3 && 'Berat'}
+                        {gejala.bobot === 2 && 'Sedang'}
+                        {gejala.bobot === 1 && 'Ringan'}
+                      </span>
+                    </td>
+
+                    {/* AKSI */}
+                    <td className="px-6 py-4 text-sm text-center">
+                      <div className="flex justify-center gap-2">
                         <button
                           onClick={() => handleOpenModal(gejala)}
-                          className="text-primary-600 hover:text-primary-900 p-1 hover:bg-primary-50 rounded transition-colors"
-                          title="Edit"
+                          className="text-primary-600 hover:text-primary-800"
                         >
                           <Pencil size={18} />
                         </button>
                         <button
                           onClick={() => handleDelete(gejala.kode_gejala)}
-                          className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded transition-colors"
-                          title="Hapus"
+                          className="text-red-600 hover:text-red-800"
                         >
                           <Trash2 size={18} />
                         </button>
@@ -233,6 +261,7 @@ export default function GejalaPage() {
                 ))
               )}
             </tbody>
+
           </table>
         </div>
       )}
@@ -267,8 +296,8 @@ export default function GejalaPage() {
           >
             Next
           </button>
-  </div>
-)}
+        </div>
+      )}
 
       {/* Modal */}
       {showModal && (
@@ -334,6 +363,24 @@ export default function GejalaPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Bobot Gejala <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.bobot}
+                  onChange={(e) =>
+                    setFormData({ ...formData, bobot: Number(e.target.value) })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  required
+                >
+                  <option value={3}>Berat (Risiko tinggi)</option>
+                  <option value={2}>Sedang (Gangguan performa)</option>
+                  <option value={1}>Ringan (Indikasi awal)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Kategori <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -345,6 +392,8 @@ export default function GejalaPage() {
                   required
                 />
               </div>
+
+
 
               {/* <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
