@@ -94,7 +94,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/vespa-smart-data', [KerusakanDiagnosisController::class, 'getVespaSmartData']);
         Route::get('/kerusakan/{kode}', [KerusakanDiagnosisController::class, 'getDetailKerusakan']);
         Route::post('/proses-diagnosis', [KerusakanDiagnosisController::class, 'prosesDiagnosis']);
-
+        // Pastikan mengarah ke method yang benar
+        Route::post('/mobile/proses-diagnosis', [KerusakanDiagnosisController::class, 'prosesDiagnosis']);
+        
         Route::get('/diagnosa', [DiagnosaController::class, 'index']);
         Route::post('/diagnosa', [DiagnosaController::class, 'storeMobile']);
         Route::get('/diagnosa/{id}', [DiagnosaController::class, 'show']);
@@ -103,7 +105,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/mobile/diagnosa',       [RiwayatDiagnosisController::class, 'store']);
         Route::get('/mobile/diagnosa/{id}',   [RiwayatDiagnosisController::class, 'show']);
         Route::delete('/mobile/diagnosa/{id}', [RiwayatDiagnosisController::class, 'destroy']);
-        });
+    });
 
 
     // TESTING FCM

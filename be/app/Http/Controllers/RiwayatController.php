@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Diagnosa;
@@ -32,7 +33,8 @@ class RiwayatDiagnosisController extends Controller
         $request->validate([
             'jenis_motor'     => 'required|string',
             'gejala_terpilih' => 'required|array',
-            'hasil_diagnosis' => 'required|array',
+            'hasil_diagnosis' => 'nullable|array',
+            'kemungkinan_kerusakan' => 'nullable|array',
         ]);
 
         $diagnosa = Diagnosa::create([
@@ -40,6 +42,7 @@ class RiwayatDiagnosisController extends Controller
             'jenis_motor'     => $request->jenis_motor,
             'gejala_terpilih' => json_encode($request->gejala_terpilih),
             'hasil_diagnosis' => json_encode($request->hasil_diagnosis),
+            'kemungkinan_kerusakan' => json_encode($request->kemungkinan_kerusakan),
         ]);
 
         return response()->json([

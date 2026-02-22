@@ -13,7 +13,7 @@ class DiagnosaHasil extends Model
 
     protected $fillable = [
         'id_diagnosa',
-        'kode_kerusakan',  // VARCHAR(10)
+        'kode_kerusakan',  
         'prioritas',
         'persentase_kecocokan',
         'tingkat_kepastian',

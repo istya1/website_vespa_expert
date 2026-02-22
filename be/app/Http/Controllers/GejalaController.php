@@ -27,7 +27,7 @@ class GejalaController extends Controller
             'nama_gejala' => 'required|max:100',
             'jenis_motor' => 'required|in:Sprint 150,Sprint S 150,LX 125,Primavera 150,Primavera S 150',
             'kategori' => 'required|max:50',
-            'deskripsi' => 'nullable|max:255',
+            'bobot' => 'required|integer|in:1,2,3', 
         ]);
 
         $jenisMotor = $request->jenis_motor;
@@ -70,7 +70,7 @@ class GejalaController extends Controller
             'nama_gejala' => $request->nama_gejala,
             'jenis_motor' => $jenisMotor,
             'kategori' => $request->kategori,
-            'deskripsi' => $request->deskripsi,
+            'bobot' => $request->bobot,
         ]);
 
         return response()->json([
@@ -102,11 +102,11 @@ class GejalaController extends Controller
             'nama_gejala' => 'max:100',
             'jenis_motor' => 'in:Sprint 150,Sprint S 150,LX 125,Primavera 150,Primavera S 150',
             'kategori' => 'max:50',
-            'deskripsi' => 'nullable|max:255',
+             'bobot' => 'integer|in:1,2,3',
         ]);
 
         $gejala->update(
-            $request->only(['nama_gejala', 'jenis_motor', 'kategori', 'deskripsi'])
+            $request->only(['nama_gejala', 'jenis_motor', 'kategori', 'bobot'])
         );
 
 

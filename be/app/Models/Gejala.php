@@ -17,7 +17,7 @@ class Gejala extends Model
         'nama_gejala',
         'jenis_motor',
         'kategori',
-        'deskripsi',
+        'bobot',
     ];
 
     // Relasi ke kerusakan melalui aturan

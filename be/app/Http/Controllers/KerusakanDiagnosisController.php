@@ -13,21 +13,34 @@ class KerusakanDiagnosisController extends Controller
      * ⚖️ 1%-99%     → Kemungkinan Kerusakan (tampil + modal tanya sisanya)
      * ❌ 0% / no match → Abaikan
      */
-    public function prosesDiagnosis(Request $request)
-    {
-        $gejalaTerpilih = $request->gejala ?? [];
+   public function prosesDiagnosis(Request $request)
+{
+    $diagnosisFinal = [];
+    $kemungkinanKerusakan = [];
 
-        if (empty($gejalaTerpilih)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gejala belum dipilih.'
-            ], 400);
-        }
+    $gejalaTerpilih = $request->gejala ?? [];
+    $jenisMotor     = $request->jenis_motor;
 
-        $aturanList = Aturan::with(['gejala', 'kerusakan'])->get();
+    if (!$jenisMotor) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Parameter jenis_motor diperlukan.'
+        ], 400);
+    }
 
-        $diagnosisFinal       = [];  // 100%
-        $kemungkinanKerusakan = [];  // 1% - 99%
+    if (empty($gejalaTerpilih)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Gejala belum dipilih.'
+        ], 400);
+    }
+
+    // 🔥 FILTER ATURAN BERDASARKAN JENIS MOTOR
+    $aturanList = Aturan::with(['gejala', 'kerusakan'])
+        ->whereHas('kerusakan', function ($q) use ($jenisMotor) {
+            $q->where('jenis_motor', $jenisMotor);
+        })
+        ->get();
 
         foreach ($aturanList as $aturan) {
 
