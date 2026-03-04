@@ -13,7 +13,8 @@ export default function DiagnosaPage() {
   const [diagnosaList, setDiagnosaList] = useState<Diagnosa[]>([]);
   const [kerusakanList, setKerusakanList] = useState<Kerusakan[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const [jenisMotor, setJenisMotor] = useState('');
+  const [gejalaTerpilih, setGejalaTerpilih] = useState<string[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
@@ -26,7 +27,7 @@ export default function DiagnosaPage() {
       setLoading(true);
 
       const [diagnosaRes, kerusakanRes] = await Promise.all([
-        DiagnosaService.getAll(),
+        DiagnosaService.getAllAdmin(),
         KerusakanService.getAll(),
       ]);
 
@@ -40,121 +41,157 @@ export default function DiagnosaPage() {
       setLoading(false);
     }
   };
-
-  const confirmDelete = async () => {
-    if (!deleteId) return;
-
-    const t = toast.loading('Menghapus diagnosa...');
-
-    try {
-      await DiagnosaService.delete(deleteId);
-      toast.success('Diagnosa dihapus', { id: t });
-      fetchData();
-    } catch (error) {
-      console.error(error);
-      toast.error('Gagal menghapus', { id: t });
-    } finally {
-      setShowDeleteModal(false);
-      setDeleteId(null);
-    }
-  };
-
-  return (
-    <DashboardLayout title="Data Diagnosa">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold">Riwayat Diagnosa</h2>
-      </div>
-
-      {loading ? (
-        <p>Memuat data...</p>
-      ) : (
-        <div className="bg-white rounded shadow overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-4 py-3 text-left">Tanggal</th>
-                <th className="px-4 py-3 text-left">Gejala Dipilih</th>
-                <th className="px-4 py-3 text-left">Hasil Kerusakan</th>
-                <th className="px-4 py-3 text-center">Persentase</th>
-                <th className="px-4 py-3 text-center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {!diagnosaList || diagnosaList.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-6 text-gray-500">
-                    Belum ada diagnosa
-                  </td>
-                </tr>
-              ) : (
-                diagnosaList.map((d) => {
-                  const kerusakan = kerusakanList.find(
-                    (k) => k.kode_kerusakan === d.kode_kerusakan
-                  );
-
-                  return (
-                    <tr key={d.id_diagnosa} className="border-t">
-                      <td className="px-4 py-3">{d.tanggal}</td>
-
-                      <td className="px-4 py-3">
-                        {d.gejala?.length
-                          ? d.gejala
-                              .map((g) => g.kode_gejala)
-                              .join(', ')
-                          : '-'}
-                      </td>
-
-                      <td className="px-4 py-3">
-                        {kerusakan?.nama_kerusakan || '-'}
-                      </td>
-
-                      <td className="px-4 py-3 text-center">
-                        {Number(d.persentase).toFixed(2)}%
-                      </td>
-
-                      <td className="px-4 py-3 flex justify-center">
-                        <button
-                          onClick={() => {
-                            setDeleteId(d.id_diagnosa);
-                            setShowDeleteModal(true);
-                          }}
-                          className="text-red-600"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+    const confirmDelete = async () => {
+      if (!deleteId) return;
+  
+      const t = toast.loading('Menghapus diagnosa...');
+  
+      try {
+        await DiagnosaService.deleteAdmin(deleteId);
+        toast.success('Diagnosa dihapus', { id: t });
+        fetchData();
+      } catch (error) {
+        console.error(error);
+        toast.error('Gagal menghapus', { id: t });
+      } finally {
+        setShowDeleteModal(false);
+        setDeleteId(null);
+      }
+    };
+  
+    const handleProsesDiagnosa = async () => {
+      if (!jenisMotor || gejalaTerpilih.length === 0) {
+        toast.error('Pilih jenis motor dan gejala');
+        return;
+      }
+  
+      setLoading(true);
+  
+      try {
+  
+        const hasil = await DiagnosaService.prosesDiagnosis({
+          jenis_motor: jenisMotor,
+          gejala_terpilih: gejalaTerpilih,
+        });
+  
+  
+        await DiagnosaService.simpanDiagnosisMobile({
+          jenis_motor: jenisMotor,
+          gejala_terpilih: gejalaTerpilih,
+          hasil_diagnosis: hasil.hasil_diagnosis ?? [],
+        });
+  
+        toast.success('Diagnosis berhasil disimpan');
+  
+      } catch (error) {
+        console.error(error);
+        toast.error('Gagal memproses diagnosis');
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    return (
+      <DashboardLayout title="Data Diagnosa">
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold">Riwayat Diagnosa</h2>
         </div>
-      )}
-
-      {/* DELETE MODAL */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-sm w-full text-center">
-            <ExclamationTriangleIcon className="h-12 w-12 text-red-600 mx-auto mb-3" />
-            <p className="mb-5">Yakin ingin menghapus diagnosa ini?</p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="flex-1 bg-gray-300 py-2 rounded"
-              >
-                Batal
-              </button>
-              <button
-                onClick={confirmDelete}
-                className="flex-1 bg-red-600 text-white py-2 rounded"
-              >
-                Hapus
-              </button>
+  
+        {loading ? (
+          <p>Memuat data...</p>
+        ) : (
+          <div className="bg-white rounded shadow overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="px-4 py-3 text-left">Tanggal</th>
+                  <th className="px-4 py-3 text-left">Gejala Dipilih</th>
+                  <th className="px-4 py-3 text-left">Hasil Kerusakan</th>
+                  <th className="px-4 py-3 text-center">Persentase</th>
+                  <th className="px-4 py-3 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {!diagnosaList || diagnosaList.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-6 text-gray-500">
+                      Belum ada diagnosa
+                    </td>
+                  </tr>
+                ) : (
+                  diagnosaList.map((d) => {
+                    const kerusakan = kerusakanList.find(
+                      (k) => k.kode_kerusakan === d.kode_kerusakan
+                    );
+  
+                    return (
+                      <tr key={d.id_diagnosa} className="border-t">
+                        <td className="px-4 py-3">{d.tanggal}</td>
+  
+                        <td className="px-4 py-3">
+                          {d.gejala?.length
+                            ? d.gejala.map((g) => g.nama_gejala).join(', ')
+                            : '-'}
+                        </td>
+  
+                        <td className="px-4 py-3">
+                          {d.hasilDiagnosis?.length ? (
+                            d.hasilDiagnosis.map((h) => (
+                              <div key={h.kode_kerusakan}>
+                                {h.kerusakan?.nama_kerusakan}
+                                ({h.persentase_kecocokan}%)
+                              </div>
+                            ))
+                          ) : '-'}
+                        </td>
+  
+                        <td className="px-4 py-3 text-center">
+                          {Number(d.persentase).toFixed(2)}%
+                        </td>
+  
+                        <td className="px-4 py-3 flex justify-center">
+                          <button
+                            onClick={() => {
+                              setDeleteId(d.id_diagnosa);
+                              setShowDeleteModal(true);
+                            }}
+                            className="text-red-600"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+  
+        {/* DELETE MODAL */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg max-w-sm w-full text-center">
+              <ExclamationTriangleIcon className="h-12 w-12 text-red-600 mx-auto mb-3" />
+              <p className="mb-5">Yakin ingin menghapus diagnosa ini?</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="flex-1 bg-gray-300 py-2 rounded"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 bg-red-600 text-white py-2 rounded"
+                >
+                  Hapus
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </DashboardLayout>
-  );
-}
+        )}
+      </DashboardLayout>
+    );
+  }

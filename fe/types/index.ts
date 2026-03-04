@@ -7,6 +7,7 @@ export interface User {
   password?: string;
   role: 'admin' | 'pengguna';
   foto?: string | null;
+  jenis_monitor?: string;
   no_hp?: string | null;
   alamat?: string | null;
   created_at?: string;
@@ -53,12 +54,39 @@ export interface Aturan {
   gejala: Gejala[];       
 }
 
+export interface GejalaDiagnosa {
+  nama_gejala: any;
+  kode_gejala: string;
+  detail_gejala?: {
+    kode_gejala: string;
+    nama_gejala: string;
+  };
+}
+
+export interface Diagnosa {
+  id_diagnosa: number;
+  tanggal: string;
+  persentase: number;
+  kode_kerusakan: string;
+  gejala?: Gejala[];
+  hasilDiagnosis?: HasilDiagnosis[];
+}
+
 export interface DiagnosaGejala {
   id: number;
   kode_gejala: string;
 }
 
-// ⭐ TABEL BARU: diagnosa_hasil
+export interface HasilDiagnosis {
+  kode_kerusakan: string;
+  persentase_kecocokan: number;
+  kerusakan?: {
+    kode_kerusakan: string;
+    nama_kerusakan: string;
+  };
+}
+
+
 export interface DiagnosaHasil {
   id_diagnosa_hasil: number;
   id_diagnosa: number;

@@ -1,5 +1,4 @@
 'use client';
-
 import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import DashboardLayout from '@/components/dashboard-layout';
@@ -10,18 +9,10 @@ import toast from 'react-hot-toast';
 export default function AdminPage() {
   const [adminList, setAdminList] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<number | null>(null);
-
-  const [formData, setFormData] = useState<Partial<User>>({
-    nama: '',
-    email: '',
-    password: '',
-    role: 'admin',
-    no_hp: '',
-    alamat: '',
-  });
+  // const [showModal, setShowModal] = useState(false);       // dikomen karena modal juga dikomen
+  // const [editMode, setEditMode] = useState(false);
+  // const [selectedUser, setSelectedUser] = useState<number | null>(null);
+  // const [formData, setFormData] = useState<Partial<User>>({ ... });
 
   useEffect(() => {
     fetchAdmins();
@@ -30,7 +21,7 @@ export default function AdminPage() {
   const fetchAdmins = async () => {
     try {
       setLoading(true);
-      const data = await UserService.get('admin'); // filter admin
+      const data = await UserService.get('admin');
       setAdminList(data ?? []);
     } catch {
       toast.error('Gagal memuat data admin');
@@ -39,163 +30,144 @@ export default function AdminPage() {
     }
   };
 
-  const handleOpenModal = (user?: User) => {
-    if (user) {
-      setEditMode(true);
-      setSelectedUser(user.id_user);
-      setFormData({ ...user, password: '' });
-    } else {
-      setEditMode(false);
-      setSelectedUser(null);
-      setFormData({ nama: '', email: '', password: '', role: 'admin', no_hp: '', alamat: '' });
-    }
-    setShowModal(true);
-  };
-
-  const handleCloseModal = () => setShowModal(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const toastId = toast.loading(editMode ? 'Mengupdate admin...' : 'Menambahkan admin...');
-    try {
-      if (editMode && selectedUser) {
-        const { password, ...updateData } = formData;
-        const dataToUpdate = password ? { ...updateData, password } : updateData;
-        await UserService.update(selectedUser, dataToUpdate);
-        toast.success('Admin berhasil diupdate', { id: toastId });
-      } else {
-        await UserService.create(formData);
-        toast.success('Admin berhasil ditambahkan', { id: toastId });
-      }
-      handleCloseModal();
-      fetchAdmins();
-    } catch (error: any) {
-      toast.error(error.message || 'Terjadi kesalahan', { id: toastId });
-    }
-  };
-
-  const handleDelete = async (id: number) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus admin ini?')) return;
-    const toastId = toast.loading('Menghapus admin...');
-    try {
-      await UserService.delete(id);
-      toast.success('Admin berhasil dihapus', { id: toastId });
-      fetchAdmins();
-    } catch (error: any) {
-      toast.error(error.message || 'Gagal menghapus admin', { id: toastId });
-    }
-  };
+  // Fungsi lain dikomen karena tombol & modal juga dikomen di kode asli
+  // const handleOpenModal = ... 
+  // const handleSubmit = ...
+  // const handleDelete = ...
 
   const roleBadge = (role: string) => (
-    <span className={`px-2 py-1 text-sm rounded-full font-semibold ${role === 'admin' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+    <span
+      className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full ${
+        role === 'admin'
+          ? 'bg-red-100 text-red-800'
+          : 'bg-green-100 text-green-800'
+      }`}
+    >
       {role}
     </span>
   );
 
   return (
     <DashboardLayout title="Master Data Admin">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-        <h2 className="text-2xl font-bold text-gray-800">Daftar Admin</h2>
-        {/* <button
-          onClick={() => handleOpenModal()}
-          className="bg-red-600 text-white px-5 py-2 rounded-lg hover:bg-red-700 transition flex items-center gap-2"
-        >
-          <Plus size={18} />
-          Tambah Admin
-        </button> */}
-      </div>
+      <div className="space-y-6">
+        {/* Header section */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h2 className="text-2xl font-bold text-gray-900">Daftar Admin</h2>
 
-      <div className="overflow-x-auto bg-white shadow-md rounded-lg">
-        {loading ? (
-          <p className="text-center py-6 text-gray-500">Memuat data...</p>
-        ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                {['Nama', 'Email', 'Role', 'No HP', 'Alamat', 'Aksi'].map((title) => (
-                  <th key={title} className="px-4 py-3 text-left text-sm font-semibold text-gray-700">{title}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {adminList.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-6 text-gray-500">Tidak ada data admin</td>
-                </tr>
-              ) : (
-                adminList.map((user) => (
-                  <tr key={user.id_user} className="hover:bg-gray-50">
-                    <td className="px-4 py-2">{user.nama}</td>
-                    <td className="px-4 py-2">{user.email}</td>
-                    <td className="px-4 py-2">{roleBadge(user.role)}</td>
-                    <td className="px-4 py-2">{user.no_hp || '-'}</td>
-                    <td className="px-4 py-2">{user.alamat || '-'}</td>
-                    {/* <td className="px-4 py-2 flex gap-2">
-                      <button
-                        onClick={() => handleOpenModal(user)}
-                        className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                      >
-                        <Pencil size={16} /> Edit
-                      </button>
-                      <button
-                        onClick={() => handleDelete(user.id_user)}
-                        className="text-red-600 hover:text-red-800 flex items-center gap-1"
-                      >
-                        <Trash2 size={16} /> Hapus
-                      </button>
-                    </td> */}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Modal */}
-      {/* {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-lg">
-            <h3 className="text-xl font-bold mb-4">{editMode ? 'Edit Admin' : 'Tambah Admin'}</h3>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <input
-                placeholder="Nama"
-                value={formData.nama || ''}
-                onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
-                required
-              />
-              <input
-                placeholder="Email"
-                value={formData.email || ''}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
-                required
-              />
-              <input
-                placeholder="Password"
-                type="password"
-                value={formData.password || ''}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
-                required={!editMode}
-              />
-              <div className="flex gap-3 mt-2">
-                <button type="submit" className="bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700 transition">
-                  Simpan
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="bg-gray-300 text-black py-2 px-4 rounded hover:bg-gray-400 transition"
-                >
-                  Batal
-                </button>
-              </div>
-            </form>
-          </div>
+          {/* Uncomment jika ingin mengaktifkan tombol tambah lagi */}
+          {/* <button
+            onClick={() => handleOpenModal()}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors shadow-sm"
+          >
+            <Plus size={18} />
+            Tambah Admin
+          </button> */}
         </div>
-      )} */}
+
+        {/* Table container */}
+        <div className="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
+          {loading ? (
+            <div className="py-12 text-center text-gray-500">
+              Memuat data...
+            </div>
+          ) : adminList.length === 0 ? (
+            <div className="py-12 text-center text-gray-500">
+              Tidak ada data admin saat ini
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th
+                      scope="col"
+                      className="px-4 py-3.5 text-left text-sm font-semibold text-gray-700 sm:px-6"
+                    >
+                      Nama
+                    </th>
+                    <th
+                      scope="col"
+                      className="hidden md:table-cell px-3 py-3.5 text-left text-sm font-semibold text-gray-700"
+                    >
+                      Email
+                    </th>
+                    <th
+                      scope="col"
+                      className="px-3 py-3.5 text-left text-sm font-semibold text-gray-700"
+                    >
+                      Role
+                    </th>
+                    <th
+                      scope="col"
+                      className="hidden sm:table-cell px-3 py-3.5 text-left text-sm font-semibold text-gray-700"
+                    >
+                      No HP
+                    </th>
+                    <th
+                      scope="col"
+                      className="hidden lg:table-cell px-3 py-3.5 text-left text-sm font-semibold text-gray-700"
+                    >
+                      Alamat
+                    </th>
+                    {/* <th
+                      scope="col"
+                      className="relative px-4 py-3.5 sm:px-6"
+                    >
+                      <span className="sr-only">Aksi</span>
+                    </th> */}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {adminList.map((user) => (
+                    <tr
+                      key={user.id_user}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                        {user.nama}
+                      </td>
+                      <td className="hidden md:table-cell whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {user.email}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm">
+                        {roleBadge(user.role)}
+                      </td>
+                      <td className="hidden sm:table-cell whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {user.no_hp || '—'}
+                      </td>
+                      <td className="hidden lg:table-cell whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {user.alamat || '—'}
+                      </td>
+
+                      {/* Uncomment jika ingin mengaktifkan aksi edit & hapus */}
+                      {/* <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                        <div className="flex items-center justify-end gap-3">
+                          <button
+                            onClick={() => handleOpenModal(user)}
+                            className="text-blue-600 hover:text-blue-800"
+                            title="Edit"
+                          >
+                            <Pencil size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(user.id_user)}
+                            className="text-red-600 hover:text-red-800"
+                            title="Hapus"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </td> */}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      
     </DashboardLayout>
   );
 }

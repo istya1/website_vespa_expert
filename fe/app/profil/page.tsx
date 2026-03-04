@@ -33,7 +33,7 @@ export default function ProfilePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
   // Fetch data profil saat pertama kali load
   useEffect(() => {
     fetchProfile();
@@ -85,7 +85,8 @@ export default function ProfilePage() {
 
       // Set preview image jika ada foto
       if (userData.foto) {
-        setPreviewImage(userData.foto);
+        const fullUrl = `${baseUrl}/storage/${userData.foto}`;
+        setPreviewImage(fullUrl);
       }
 
     } catch (error: any) {
@@ -144,17 +145,23 @@ export default function ProfilePage() {
     const loadingToast = toast.loading('Menyimpan perubahan...');
 
     try {
-      const response = await UserService.update(user.id_user, {
+      // 1. Update data text dulu
+      const updatedUser = await UserService.update(user.id_user, {
         nama: formData.nama,
         alamat: formData.alamat,
       });
 
-      if (!response.data) {
-        throw new Error('Data user kosong dari server');
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+
+      // 2. Jika ada foto baru → upload
+      if (selectedFile) {
+        const photoRes = await UserService.uploadPhoto(user.id_user, selectedFile);
+        updatedUser.foto = photoRes.foto; // ambil URL dari backend
       }
 
-      setUser(response.data);     // ✅ FIX
-      localStorage.setItem('user', JSON.stringify(response.data));
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
 
       setEditMode(false);
       setSelectedFile(null);
