@@ -48,7 +48,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('users/{id_user}/change-password', [UserController::class, 'changePassword']);
     Route::post('users/{id_user}/profile', [UserController::class, 'updateProfile']);
     Route::apiResource('users', UserController::class)->parameters(['users' => 'id_user']);
-
+    Route::post('/users/{id}/change-password', [UserController::class, 'changePassword']);
+    
     // MASTER DATA
     Route::apiResource('gejala', GejalaController::class);
     Route::apiResource('kerusakan', KerusakanController::class);
@@ -96,7 +97,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/proses-diagnosis', [KerusakanDiagnosisController::class, 'prosesDiagnosis']);
         // Pastikan mengarah ke method yang benar
         Route::post('/mobile/proses-diagnosis', [KerusakanDiagnosisController::class, 'prosesDiagnosis']);
-        
+
         Route::get('/diagnosa', [DiagnosaController::class, 'index']);
         Route::post('/diagnosa', [DiagnosaController::class, 'storeMobile']);
         Route::get('/diagnosa/{id}', [DiagnosaController::class, 'show']);

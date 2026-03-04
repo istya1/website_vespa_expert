@@ -15,7 +15,7 @@ class Diagnosa extends Model
         'gejala_terpilih',
         'kode_kerusakan',
         'persentase',
-        'tingkat_kepastian', // TAMBAH INI
+        'tingkat_kepastian',
         'tanggal',
     ];
 
