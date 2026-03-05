@@ -26,10 +26,10 @@ const DiagnosaService = {
     return res.data;
   },
 
- 
-  async getAllAdmin() {
-  const res = await api.get('/diagnosa'); // ✅ hapus admin
-  return res.data.data;
+async getAllAdmin() {
+  const res = await api.get('/diagnosa');  // ← kembali ke /diagnosa
+  console.log('RAW RESPONSE ADMIN (dari /diagnosa):', res.data);
+  return res.data?.data || res.data || [];
 },
 
 async deleteAdmin(id: number) {

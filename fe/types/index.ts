@@ -64,12 +64,23 @@ export interface GejalaDiagnosa {
 }
 
 export interface Diagnosa {
+  // id_diagnosa: number;
+  // tanggal: string;
+  // persentase: number;
+  // kode_kerusakan: string;
+  // gejala?: Gejala[];
+  // hasilDiagnosis?: HasilDiagnosis[];
+
   id_diagnosa: number;
-  tanggal: string;
+  user_id: number;
+  jenis_motor: string;
+  gejala_terpilih: string | string[]; // bisa string JSON atau array setelah decode
+  kode_kerusakan: string | null;
   persentase: number;
-  kode_kerusakan: string;
-  gejala?: Gejala[];
-  hasilDiagnosis?: HasilDiagnosis[];
+  tingkat_kepastian: string;
+  tanggal: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface DiagnosaGejala {
