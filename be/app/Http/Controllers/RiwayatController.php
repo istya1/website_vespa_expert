@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Diagnosa;
+use App\Models\riwayat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -14,7 +14,7 @@ class RiwayatDiagnosisController extends Controller
      */
     public function index(Request $request)
     {
-        $diagnosa = Diagnosa::where('user_id', Auth::id())
+        $diagnosa = riwayat::where('user_id', Auth::id())
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -37,7 +37,7 @@ class RiwayatDiagnosisController extends Controller
             'kemungkinan_kerusakan' => 'nullable|array',
         ]);
 
-        $diagnosa = Diagnosa::create([
+        $diagnosa = riwayat::create([
             'user_id'         => Auth::id(),
             'jenis_motor'     => $request->jenis_motor,
             'gejala_terpilih' => json_encode($request->gejala_terpilih),
@@ -58,7 +58,7 @@ class RiwayatDiagnosisController extends Controller
      */
     public function show($id)
     {
-        $diagnosa = Diagnosa::where('id', $id)
+        $diagnosa = riwayat::where('id', $id)
             ->where('user_id', Auth::id())
             ->first();
 
@@ -81,7 +81,7 @@ class RiwayatDiagnosisController extends Controller
      */
     public function destroy($id)
     {
-        $diagnosa = Diagnosa::where('id', $id)
+        $diagnosa = riwayat::where('id', $id)
             ->where('user_id', Auth::id())
             ->first();
 

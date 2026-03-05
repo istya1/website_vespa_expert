@@ -49,7 +49,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('users/{id_user}/profile', [UserController::class, 'updateProfile']);
     Route::apiResource('users', UserController::class)->parameters(['users' => 'id_user']);
     Route::post('/users/{id}/change-password', [UserController::class, 'changePassword']);
-    
+
     // MASTER DATA
     Route::apiResource('gejala', GejalaController::class);
     Route::apiResource('kerusakan', KerusakanController::class);
@@ -101,11 +101,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/diagnosa', [DiagnosaController::class, 'index']);
         Route::post('/diagnosa', [DiagnosaController::class, 'storeMobile']);
         Route::get('/diagnosa/{id}', [DiagnosaController::class, 'show']);
+        // Route::get('/diagnosa', [DiagnosaController::class, 'indexMobile']);
+        // Route::get('/diagnosa/admin', [DiagnosaController::class, 'indexAdmin']);
+        // Route::get('/mobile/diagnosa',        [RiwayatDiagnosisController::class, 'index']);
+        // // Route::post('/mobile/diagnosa',       [RiwayatDiagnosisController::class, 'store']);
+        // Route::get('/mobile/diagnosa/{id}',   [RiwayatDiagnosisController::class, 'show']);
+        // Route::delete('/mobile/diagnosa/{id}', [RiwayatDiagnosisController::class, 'destroy']);
 
-        Route::get('/mobile/diagnosa',        [RiwayatDiagnosisController::class, 'index']);
-        Route::post('/mobile/diagnosa',       [RiwayatDiagnosisController::class, 'store']);
-        Route::get('/mobile/diagnosa/{id}',   [RiwayatDiagnosisController::class, 'show']);
-        Route::delete('/mobile/diagnosa/{id}', [RiwayatDiagnosisController::class, 'destroy']);
     });
 
 
