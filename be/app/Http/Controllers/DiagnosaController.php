@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
+
 class DiagnosaController extends Controller
 {
     public function index(Request $request)
@@ -366,17 +367,22 @@ class DiagnosaController extends Controller
     }
 
     public function indexAdmin()
-    {
-        return response()->json([
-            'success' => true,
-            'data' => Diagnosa::with([
-                'user',
-                'kerusakan',
-                'gejala',               // untuk nama gejala
-                'hasilDiagnosis.kerusakan'  // untuk nama kerusakan di hasil
-            ])
-                ->orderByDesc('id_diagnosa')
-                ->get()
+{
+    $data = Diagnosa::with(['user', 'gejala', 'hasilDiagnosis.kerusakan'])
+        ->orderByDesc('id_diagnosa')
+        ->get();
+
+    // Debug
+    Log::info('ADMIN DIAGNOSA TOTAL: ' . $data->count());
+
+    foreach ($data as $diagnosa) {
+        Log::info("Diagnosa ID {$diagnosa->id_diagnosa}", [
+            'hasilDiagnosis_count' => $diagnosa->hasilDiagnosis->count(),
+            'first_hasil' => $diagnosa->hasilDiagnosis->first() ? $diagnosa->hasilDiagnosis->first()->toArray() : 'kosong',
+            'first_kerusakan_nama' => $diagnosa->hasilDiagnosis->first()?->kerusakan?->nama_kerusakan ?? 'tidak ada'
         ]);
     }
+
+    return response()->json(['success' => true, 'data' => $data]);
+}
 }
