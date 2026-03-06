@@ -1,4 +1,3 @@
-// src/components/Sidebar.tsx
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
@@ -16,11 +15,10 @@ import {
   Smartphone,
   BookOpen,
   Settings,
-  Bell,
-  Fuel,
-  Gauge,
-  Menu,
+  Activity,       // baru: untuk Riwayat Diagnosa
+  CalendarCheck,
   X,
+  Menu,  // baru: untuk Riwayat Service Berkala (atau pakai Wrench kalau mau)
 } from 'lucide-react';
 
 interface MenuItem {
@@ -43,7 +41,7 @@ const MENU_ITEMS: MenuItem[] = [
       { name: 'Data Gejala', path: '/data-aturan/gejala', icon: AlertTriangle },
       { name: 'Data Kerusakan', path: '/data-aturan/kerusakan', icon: XCircle },
       { name: 'Aturan', path: '/data-aturan/aturan', icon: Settings },
-      { name: 'Diagnosa', path: '/data-aturan/diagnosa', icon: Gauge },
+      // Diagnosa DIHAPUS dari sini
     ],
   },
   {
@@ -64,8 +62,15 @@ const MENU_ITEMS: MenuItem[] = [
   },
   {
     name: 'Riwayat',
-    path: '/riwayat',
     icon: Clock,
+    submenu: [
+      {
+        name: 'Riwayat Diagnosa', path: '/riwayat/riwayat-diagnosa', icon: Activity,
+      },
+      {
+        name: 'Riwayat Service Berkala', path: '/riwayat/riwayat-service', icon: CalendarCheck,                
+      },
+    ],
   },
 ];
 
@@ -102,7 +107,11 @@ export default function Sidebar() {
         <div key={item.name} className="mb-1">
           <button
             onClick={() => toggleMenu(item.name)}
-            className="flex items-center justify-between w-full px-4 py-3 text-gray-700 hover:bg-primary-100 rounded-lg transition-colors"
+            className={`flex items-center justify-between w-full px-4 py-3 text-gray-700 hover:bg-primary-100 rounded-lg transition-colors ${
+              isOpen || item.submenu?.some(sub => isActive(sub.path))
+                ? 'bg-primary-50 text-primary-700'
+                : ''
+            }`}
           >
             <div className="flex items-center gap-3">
               <Icon size={20} />
@@ -159,7 +168,7 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Hamburger Button - hanya muncul di mobile */}
+      {/* Hamburger Button */}
       <button
         onClick={toggleSidebar}
         className="fixed top-4 left-4 z-50 p-2.5 bg-primary-600 text-white rounded-lg shadow-md md:hidden hover:bg-primary-700 transition-colors focus:outline-none"
@@ -168,7 +177,7 @@ export default function Sidebar() {
         {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
-      {/* Overlay gelap saat sidebar terbuka di mobile */}
+      {/* Overlay */}
       {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
@@ -177,7 +186,7 @@ export default function Sidebar() {
         />
       )}
 
-      {/* Sidebar itu sendiri */}
+      {/* Sidebar */}
       <aside
         className={`
           fixed inset-y-0 left-0 z-50
@@ -189,7 +198,7 @@ export default function Sidebar() {
           overflow-hidden
         `}
       >
-        {/* Header / Logo */}
+        {/* Logo/Header */}
         <div className="flex items-center gap-3 px-6 py-6 border-b border-gray-200">
           <div className="w-14 h-12 rounded overflow-hidden flex-shrink-0">
             <img
@@ -204,17 +213,12 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* Area menu yang bisa di-scroll */}
+        {/* Menu */}
         <div className="flex-1 overflow-y-auto py-4 px-3 scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400">
           <nav className="space-y-1">
             {MENU_ITEMS.map((item) => renderMenuItem(item))}
           </nav>
         </div>
-
-        {/* Optional: footer di bawah kalau perlu */}
-        {/* <div className="p-4 border-t border-gray-200 text-xs text-gray-500">
-          © 2025 Vespa Expert
-        </div> */}
       </aside>
     </>
   );
