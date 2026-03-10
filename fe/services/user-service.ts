@@ -9,6 +9,9 @@ interface MonthlyUserStat {
 }
 
 class UserService {
+  async post(endpoint: string, data: any) {
+  return await ApiService.post(`/users/${endpoint}`, data);
+}
   // GET all users by role (sudah ada, tetap)
   async get(role?: string): Promise<User[]> {
     const users = await ApiService.get<User[]>(`/users${role ? `?role=${role}` : ''}`);

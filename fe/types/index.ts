@@ -1,11 +1,11 @@
 // src/types/index.ts
 
 export interface User {
-  id_user: number;
+  id_user: number | string;
   email: string;
   nama: string;
   password?: string;
-  role: 'admin' | 'pengguna';
+  role: 'admin' | 'pengguna' | 'superadmin';
   foto?: string | null;
   jenis_monitor?: string;
   no_hp?: string | null;

@@ -14,39 +14,39 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-const handleSubmit = async (e: FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-  try {
-    const response = await AuthService.login(email, password);
+    try {
+      const response = await AuthService.login(email, password);
 
-    // 🔐 Cek role admin
-    if (response.role !== 'admin') {
-      toast.error('Akses hanya untuk admin');
+      // 🔐 Cek role admin atau superadmin
+      if (response.role !== 'admin' && response.role !== 'superadmin') {
+        toast.error('Akses hanya untuk admin');
+        setLoading(false);
+        return;
+      }
+
+      toast.success('Login berhasil!');
+      router.push('/dashboard');
+
+    } catch (err: any) {
+      toast.error(err.message || 'Login gagal. Silakan coba lagi.');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    toast.success('Login berhasil!');
-    router.push('/dashboard');
-
-  } catch (err: any) {
-    toast.error(err.message || 'Login gagal. Silakan coba lagi.');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
 
-// router.push('/dashboard');
+  // router.push('/dashboard');
 
   useEffect(() => {
-  // paksa logout saat buka halaman login
-  Cookies.remove('token');
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
-}, []);
+    // paksa logout saat buka halaman login
+    Cookies.remove('token');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-600 to-primary-800 flex items-center justify-center p-4">

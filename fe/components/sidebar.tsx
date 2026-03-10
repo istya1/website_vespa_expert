@@ -1,7 +1,10 @@
 'use client';
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import AuthService from '@/services/auth-service';
+
 import {
   LayoutDashboard,
   FileText,
@@ -15,16 +18,17 @@ import {
   Smartphone,
   BookOpen,
   Settings,
-  Activity,       // baru: untuk Riwayat Diagnosa
+  Activity,
   CalendarCheck,
   X,
-  Menu,  // baru: untuk Riwayat Service Berkala (atau pakai Wrench kalau mau)
+  Menu,
 } from 'lucide-react';
 
 interface MenuItem {
   name: string;
   path?: string;
   icon: any;
+  role?: string;
   submenu?: MenuItem[];
 }
 
@@ -41,7 +45,6 @@ const MENU_ITEMS: MenuItem[] = [
       { name: 'Data Gejala', path: '/data-aturan/gejala', icon: AlertTriangle },
       { name: 'Data Kerusakan', path: '/data-aturan/kerusakan', icon: XCircle },
       { name: 'Aturan', path: '/data-aturan/aturan', icon: Settings },
-      // Diagnosa DIHAPUS dari sini
     ],
   },
   {
@@ -49,7 +52,12 @@ const MENU_ITEMS: MenuItem[] = [
     icon: Database,
     submenu: [
       { name: 'User', path: '/master-data/user', icon: Users },
-      { name: 'Admin', path: '/master-data/admin', icon: Wrench },
+      {
+        name: 'Admin',
+        path: '/master-data/admin',
+        icon: Wrench,
+        role: 'superadmin', // hanya superadmin
+      },
     ],
   },
   {
@@ -65,10 +73,14 @@ const MENU_ITEMS: MenuItem[] = [
     icon: Clock,
     submenu: [
       {
-        name: 'Riwayat Diagnosa', path: '/riwayat/riwayat-diagnosa', icon: Activity,
+        name: 'Riwayat Diagnosa',
+        path: '/riwayat/riwayat-diagnosa',
+        icon: Activity,
       },
       {
-        name: 'Riwayat Service Berkala', path: '/riwayat/riwayat-service', icon: CalendarCheck,                
+        name: 'Riwayat Service Berkala',
+        path: '/riwayat/riwayat-service',
+        icon: CalendarCheck,
       },
     ],
   },
@@ -76,8 +88,14 @@ const MENU_ITEMS: MenuItem[] = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [openMenus, setOpenMenus] = useState<string[]>(['Data Aturan', 'Master Data']);
+  const [role, setRole] = useState<string | null>(null);
+  const [openMenus, setOpenMenus] = useState<string[]>(['Data Aturan']);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const user = AuthService.getUser();
+    setRole(user?.role || null);
+  }, []);
 
   const toggleMenu = (menuName: string) => {
     setOpenMenus((prev) =>
@@ -97,6 +115,24 @@ export default function Sidebar() {
 
   const isActive = (path?: string) => path && pathname === path;
 
+  const filterMenu = (items: MenuItem[]) => {
+    return items
+      .map((item) => {
+        if (item.submenu) {
+          const filteredSub = item.submenu.filter(
+            (sub) => !sub.role || sub.role === role
+          );
+
+          return { ...item, submenu: filteredSub };
+        }
+
+        return item;
+      })
+      .filter((item) => !item.role || item.role === role);
+  };
+
+  const menuItems = filterMenu(MENU_ITEMS);
+
   const renderMenuItem = (item: MenuItem) => {
     const hasSubmenu = item.submenu && item.submenu.length > 0;
     const isOpen = openMenus.includes(item.name);
@@ -108,7 +144,7 @@ export default function Sidebar() {
           <button
             onClick={() => toggleMenu(item.name)}
             className={`flex items-center justify-between w-full px-4 py-3 text-gray-700 hover:bg-primary-100 rounded-lg transition-colors ${
-              isOpen || item.submenu?.some(sub => isActive(sub.path))
+              isOpen || item.submenu?.some((sub) => isActive(sub.path))
                 ? 'bg-primary-50 text-primary-700'
                 : ''
             }`}
@@ -119,7 +155,7 @@ export default function Sidebar() {
             </div>
             <ChevronDown
               size={16}
-              className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+              className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}
             />
           </button>
 
@@ -127,12 +163,13 @@ export default function Sidebar() {
             <div className="ml-8 mt-1 mb-2 space-y-1">
               {item.submenu?.map((subItem) => {
                 const SubIcon = subItem.icon;
+
                 return (
                   <Link
                     key={subItem.path}
                     href={subItem.path || '#'}
                     onClick={closeSidebar}
-                    className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors text-sm ${
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm ${
                       isActive(subItem.path)
                         ? 'bg-primary-600 text-white'
                         : 'text-gray-700 hover:bg-primary-50'
@@ -154,7 +191,7 @@ export default function Sidebar() {
         key={item.path}
         href={item.path || '#'}
         onClick={closeSidebar}
-        className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
+        className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-1 ${
           isActive(item.path)
             ? 'bg-primary-600 text-white'
             : 'text-gray-700 hover:bg-primary-50'
@@ -168,55 +205,44 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* Hamburger Button */}
+      {/* Hamburger */}
       <button
         onClick={toggleSidebar}
-        className="fixed top-4 left-4 z-50 p-2.5 bg-primary-600 text-white rounded-lg shadow-md md:hidden hover:bg-primary-700 transition-colors focus:outline-none"
-        aria-label="Toggle sidebar"
+        className="fixed top-4 left-4 z-50 p-2.5 bg-primary-600 text-white rounded-lg md:hidden"
       >
         {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
-      {/* Overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
           onClick={closeSidebar}
-          aria-hidden="true"
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50
-          w-72 bg-white border-r border-gray-200
-          transform transition-transform duration-300 ease-in-out
-          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          md:translate-x-0 md:static md:inset-auto
-          flex flex-col
-          overflow-hidden
-        `}
+        fixed inset-y-0 left-0 z-50
+        w-72 bg-white border-r border-gray-200
+        transform transition-transform
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:translate-x-0 md:static
+        flex flex-col
+      `}
       >
-        {/* Logo/Header */}
-        <div className="flex items-center gap-3 px-6 py-6 border-b border-gray-200">
-          <div className="w-14 h-12 rounded overflow-hidden flex-shrink-0">
-            <img
-              src="/asset/logo.png"
-              alt="Vespa Expert Logo"
-              className="w-full h-full object-contain"
-            />
-          </div>
+        {/* Logo */}
+        <div className="flex items-center gap-3 px-6 py-6 border-b">
+          <img src="/asset/logo.png" className="w-12 h-12 object-contain" />
           <div>
-            <h1 className="text-xl font-bold text-gray-800">Vespa</h1>
+            <h1 className="text-xl font-bold">Vespa</h1>
             <p className="text-sm text-gray-500">Expert</p>
           </div>
         </div>
 
         {/* Menu */}
-        <div className="flex-1 overflow-y-auto py-4 px-3 scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400">
+        <div className="flex-1 overflow-y-auto py-4 px-3">
           <nav className="space-y-1">
-            {MENU_ITEMS.map((item) => renderMenuItem(item))}
+            {menuItems.map((item) => renderMenuItem(item))}
           </nav>
         </div>
       </aside>

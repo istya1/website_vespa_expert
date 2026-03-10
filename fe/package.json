@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
+    "@react-native-firebase/app": "^23.8.6",
+    "@react-native-firebase/messaging": "^23.8.6",
     "axios": "^1.13.2",
     "chart.js": "^4.5.1",
     "chartjs-adapter-date-fns": "^3.0.0",
