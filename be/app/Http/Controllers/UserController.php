@@ -44,7 +44,7 @@ class UserController extends Controller
         'nama'        => 'required|string|max:255',
         'email'       => 'required|string|email|max:255|unique:user,email',
         'password'    => 'required|string|min:6',
-        'role'        => 'required|string|in:admin,pengguna',
+        'role'        => 'required|string|in:admin,pengguna,superadmin',
         'no_hp'       => 'nullable|string|max:20',
         'alamat'      => 'nullable|string',
         'jenis_motor' => 'nullable|string|max:50',  // ← UBAH JADI nullable (boleh kosong)

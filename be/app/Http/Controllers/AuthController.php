@@ -16,6 +16,8 @@ class AuthController extends Controller
 {
     public function login(Request $request)
     {
+        Log::info($request->all());
+        
         $request->validate([
             'email' => 'required|email',
             'password' => 'required',
@@ -29,7 +31,7 @@ class AuthController extends Controller
             ], 401);
         }
 
-        if (!in_array($user->role, ['admin', 'pengguna'])) {
+       if (!in_array($user->role, ['superadmin', 'admin', 'pengguna'])) {
             return response()->json([
                 'message' => 'Role tidak diizinkan'
             ], 403);

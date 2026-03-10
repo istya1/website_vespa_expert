@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\GejalaController;
@@ -12,8 +13,10 @@ use App\Http\Controllers\UserServiceReminderController;
 use App\Http\Controllers\AturanController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\VespaCareController;
+use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\RiwayatDiagnosisController;
 use App\Http\Controllers\KerusakanDiagnosisController;
+use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\SolusiController;
 use Kreait\Firebase\Factory;
 use Kreait\Firebase\Messaging\CloudMessage;
@@ -29,6 +32,14 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+
+Route::get('/motor-types', function () {
+    return DB::table('motor_types')->get();
+});
+
+Route::post('/save-token', [ServiceController::class, 'saveToken']);
+Route::get('/motor-types', [ServiceController::class, 'motorTypes']);
+Route::post('/save-km', [ServiceController::class, 'saveKm']);
 
 /*
 |--------------------------------------------------------------------------
@@ -101,13 +112,25 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/diagnosa', [DiagnosaController::class, 'index']);
         Route::post('/diagnosa', [DiagnosaController::class, 'storeMobile']);
         Route::get('/diagnosa/{id}', [DiagnosaController::class, 'show']);
-        // Route::get('/diagnosa', [DiagnosaController::class, 'indexMobile']);
-        // Route::get('/diagnosa/admin', [DiagnosaController::class, 'indexAdmin']);
-        // Route::get('/mobile/diagnosa',        [RiwayatDiagnosisController::class, 'index']);
-        // // Route::post('/mobile/diagnosa',       [RiwayatDiagnosisController::class, 'store']);
-        // Route::get('/mobile/diagnosa/{id}',   [RiwayatDiagnosisController::class, 'show']);
-        // Route::delete('/mobile/diagnosa/{id}', [RiwayatDiagnosisController::class, 'destroy']);
 
+        // Route yang butuh token (auth:sanctum)
+        // Route::middleware('auth:sanctum')->prefix('motor')->group(function () {
+        //     Route::post('/update-km', [ServiceController::class, 'updateKm']);
+        //     Route::get('/info', [ServiceController::class, 'getInfoMotor']);
+        // });
+
+        // Route::get('/motor/cek-notif', [ServiceController::class, 'cekDanKirimNotif']);
+        // Route::get('/motor/cek-notif/{userId}', [ServiceController::class, 'cekDanKirimNotif']);
+    });
+
+    Route::middleware(['auth:sanctum'])->group(function () {
+
+        Route::middleware(['superadmin'])->group(function () {
+            Route::get('/admin', [SuperAdminController::class, 'index']);
+            Route::post('/admin', [SuperAdminController::class, 'store']);
+            Route::put('/admin/{user}', [SuperAdminController::class, 'update']);
+            Route::delete('/admin/{user}', [SuperAdminController::class, 'destroy']);
+        });
     });
 
 
