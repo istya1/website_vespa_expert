@@ -111,7 +111,7 @@ export default function UserPage() {
                         {roleBadge(user.role)}
                       </td>
                       <td className="hidden sm:table-cell whitespace-nowrap px-3 py-4 text-sm text-gray-600">
-                        {user.jenis_monitor || '—'}
+                        {user.jenis_motor || '—'}
                       </td>
 
                       {/* Aksi (jika diaktifkan nanti) */}

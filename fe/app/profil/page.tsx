@@ -64,7 +64,7 @@ export default function ProfilePage() {
       console.log('📍 Fetching user with ID:', currentUser.id_user);
 
       // Ambil data user terbaru dari API
-      const userData = await UserService.getById(currentUser.id_user);
+      const userData = await UserService.getById(Number(currentUser.id_user));
 
       console.log('✅ User data received:', userData);
 
@@ -146,7 +146,7 @@ export default function ProfilePage() {
 
     try {
       // 1. Update data text dulu
-      const updatedUser = await UserService.update(user.id_user, {
+      const updatedUser = await UserService.update(Number(user.id_user), {
         nama: formData.nama,
         alamat: formData.alamat,
       });
@@ -156,7 +156,7 @@ export default function ProfilePage() {
 
       // 2. Jika ada foto baru → upload
       if (selectedFile) {
-        const photoRes = await UserService.uploadPhoto(user.id_user, selectedFile);
+        const photoRes = await UserService.uploadPhoto(Number(user.id_user), selectedFile);
         updatedUser.foto = photoRes.foto; // ambil URL dari backend
       }
 
@@ -191,7 +191,7 @@ export default function ProfilePage() {
     const loadingToast = toast.loading('Mengubah password...');
 
     try {
-      await UserService.changePassword(user.id_user, {
+      await UserService.changePassword(Number(user.id_user), {
         oldPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword,
       });

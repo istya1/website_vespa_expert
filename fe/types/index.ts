@@ -7,7 +7,7 @@ export interface User {
   password?: string;
   role: 'admin' | 'pengguna' | 'superadmin';
   foto?: string | null;
-  jenis_monitor?: string;
+  jenis_motor?: string;
   no_hp?: string | null;
   alamat?: string | null;
   created_at?: string;
