@@ -32,17 +32,17 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // ❌ Email belum diverifikasi (INI YANG DITAMBAH 🔥)
-        if (!$user->email_verified_at) {
-            return response()->json([
-                'message' => 'Email belum diverifikasi. Silakan cek email Anda.'
-            ], 403);
-        }
-
         // ❌ Role tidak valid
         if (!in_array($user->role, ['superadmin', 'admin', 'pengguna'])) {
             return response()->json([
                 'message' => 'Role tidak diizinkan'
+            ], 403);
+        }
+
+        // ✅ HANYA pengguna yang wajib verifikasi
+        if ($user->role === 'pengguna' && !$user->email_verified_at) {
+            return response()->json([
+                'message' => 'Email belum diverifikasi. Silakan cek email Anda.'
             ], 403);
         }
 
@@ -94,7 +94,7 @@ class AuthController extends Controller
                 'no_hp' => $request->json('no_hp'),
                 'alamat' => $request->json('alamat'),
                 'jenis_montor' => $request->json('jenis_montor'),
-                'email_verified_at' => null // ❗ penting
+                'email_verified_at' => $request->json('role') !== 'pengguna' ? now() : null
             ]);
 
             // ✅ Generate token verifikasi
