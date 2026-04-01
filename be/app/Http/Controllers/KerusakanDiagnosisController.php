@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Gejala;
@@ -8,39 +9,34 @@ use Illuminate\Http\Request;
 
 class KerusakanDiagnosisController extends Controller
 {
-    /**
-     * ✅ 100%        → Diagnosis Final
-     * ⚖️ 1%-99%     → Kemungkinan Kerusakan (tampil + modal tanya sisanya)
-     * ❌ 0% / no match → Abaikan
-     */
-   public function prosesDiagnosis(Request $request)
-{
-    $diagnosisFinal = [];
-    $kemungkinanKerusakan = [];
+    public function prosesDiagnosis(Request $request)
+    {
+        $diagnosisFinal = [];
+        $kemungkinanKerusakan = [];
 
-    $gejalaTerpilih = $request->gejala ?? [];
-    $jenisMotor     = $request->jenis_motor;
+        $gejalaTerpilih = $request->gejala ?? [];
+        $jenisMotor     = $request->jenis_motor;
 
-    if (!$jenisMotor) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Parameter jenis_motor diperlukan.'
-        ], 400);
-    }
+        if (!$jenisMotor) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Parameter jenis_motor diperlukan.'
+            ], 400);
+        }
 
-    if (empty($gejalaTerpilih)) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Gejala belum dipilih.'
-        ], 400);
-    }
+        if (empty($gejalaTerpilih)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gejala belum dipilih.'
+            ], 400);
+        }
 
-    // 🔥 FILTER ATURAN BERDASARKAN JENIS MOTOR
-    $aturanList = Aturan::with(['gejala', 'kerusakan'])
-        ->whereHas('kerusakan', function ($q) use ($jenisMotor) {
-            $q->where('jenis_motor', $jenisMotor);
-        })
-        ->get();
+        // 🔥 Ambil aturan sesuai jenis motor
+        $aturanList = Aturan::with(['gejala', 'kerusakan'])
+            ->whereHas('kerusakan', function ($q) use ($jenisMotor) {
+                $q->where('jenis_motor', $jenisMotor);
+            })
+            ->get();
 
         foreach ($aturanList as $aturan) {
 
@@ -49,15 +45,29 @@ class KerusakanDiagnosisController extends Controller
 
             if ($totalGejala === 0) continue;
 
+            // ✅ Ambil gejala yang cocok
             $gejalaMatch = array_intersect($gejalaTerpilih, $gejalaAturan);
             $jumlahMatch = count($gejalaMatch);
 
-            if ($jumlahMatch === 0) continue; // tidak relevan
+            if ($jumlahMatch === 0) continue;
 
+            // ✅ Hitung bobot
+            $totalBobot = Gejala::whereIn('kode_gejala', $gejalaMatch)->sum('bobot');
+
+            // ✅ Tentukan prioritas
+            if ($totalBobot >= 5) {
+                $prioritas = 'Tinggi';
+            } elseif ($totalBobot >= 3) {
+                $prioritas = 'Sedang';
+            } else {
+                $prioritas = 'Rendah';
+            }
+
+            // ✅ Lanjut perhitungan
             $gejalaBelum = array_diff($gejalaAturan, $gejalaTerpilih);
             $persentase  = ($jumlahMatch / $totalGejala) * 100;
 
-            // ── CASE A: FULL MATCH 100% → Diagnosis Final ─────────────
+            // ── CASE A: FULL MATCH
             if ($jumlahMatch === $totalGejala) {
 
                 $diagnosisFinal[] = [
@@ -69,17 +79,25 @@ class KerusakanDiagnosisController extends Controller
                     'jumlah_gejala'        => $totalGejala,
                     'label'                => 'Diagnosis Final',
                     'status'               => 'final',
+
+                    // 🔥 PRIORITAS
+                    'prioritas'            => $prioritas,
+                    'total_bobot'          => $totalBobot,
                 ];
 
-            // ── CASE B: 1%-99% → Kemungkinan Kerusakan ────────────────
             } else {
 
+                // ── CASE B: KEMUNGKINAN
                 $kemungkinanKerusakan[] = [
                     'id_aturan'      => $aturan->id_aturan,
                     'kode_kerusakan' => $aturan->kerusakan->kode_kerusakan,
                     'nama_kerusakan' => $aturan->kerusakan->nama_kerusakan,
                     'solusi'         => $aturan->kerusakan->solusi,
                     'label'          => 'Kemungkinan Kerusakan',
+
+                    // 🔥 PRIORITAS
+                    'prioritas'      => $prioritas,
+                    'total_bobot'    => $totalBobot,
 
                     'kecocokan' => [
                         'persentase'      => round($persentase, 2),
@@ -98,33 +116,28 @@ class KerusakanDiagnosisController extends Controller
             }
         }
 
-        // ── STATUS AKHIR ───────────────────────────────────────────────
+        // 🔥 Status akhir
         if (!empty($diagnosisFinal) || !empty($kemungkinanKerusakan)) {
             $statusDiagnosis = 'selesai';
         } else {
             $statusDiagnosis = 'tidak_ditemukan';
         }
 
-        $pesan = $this->generatePesan(
-            $statusDiagnosis,
-            count($diagnosisFinal),
-            count($kemungkinanKerusakan)
-        );
-
         return response()->json([
             'success'               => true,
             'status_diagnosis'      => $statusDiagnosis,
-            'message'               => $pesan,
-            'hasil_diagnosis'       => $diagnosisFinal,       // ✅ 100%
-            'kemungkinan_kerusakan' => $kemungkinanKerusakan, // ⚖️ 1%-99%
+            'message'               => $this->generatePesan(
+                $statusDiagnosis,
+                count($diagnosisFinal),
+                count($kemungkinanKerusakan)
+            ),
+            'hasil_diagnosis'       => $diagnosisFinal,
+            'kemungkinan_kerusakan' => $kemungkinanKerusakan,
         ]);
     }
 
-    private function generatePesan(
-        string $status,
-        int $jumlahFinal,
-        int $jumlahKemungkinan
-    ): string {
+    private function generatePesan($status, $jumlahFinal, $jumlahKemungkinan)
+    {
         if ($status === 'tidak_ditemukan') {
             return 'Tidak ada kerusakan yang cocok. Coba pilih gejala lain.';
         }
@@ -155,19 +168,6 @@ class KerusakanDiagnosisController extends Controller
             ->toArray();
     }
 
-    public function getDetailKerusakan($kode)
-    {
-        $kerusakan = Kerusakan::where('kode_kerusakan', $kode)->first();
-
-        if (!$kerusakan) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Kerusakan tidak ditemukan.'
-            ], 404);
-        }
-
-        return response()->json(['success' => true, 'kerusakan' => $kerusakan]);
-    }
 
     public function getVespaSmartData(Request $request)
     {

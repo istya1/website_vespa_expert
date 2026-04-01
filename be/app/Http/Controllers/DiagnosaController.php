@@ -230,7 +230,7 @@ class DiagnosaController extends Controller
                 DiagnosaHasil::create([
                     'id_diagnosa'          => $diagnosa->id_diagnosa,
                     'kode_kerusakan'       => $hasil['kode_kerusakan'] ?? null,
-                    'prioritas'            => $hasil['prioritas'] ?? ($index + 1),
+                    'prioritas' => $this->mapPrioritas($hasil['prioritas'] ?? null, $index),
                     'persentase_kecocokan' => $hasil['persentase_kecocokan'] ?? 0,
                     'tingkat_kepastian'    => $hasil['tingkat_kepastian'] ?? 'Sedang',
                     'gejala_cocok'         => $hasil['gejala_cocok'] ?? '[]',
@@ -385,4 +385,15 @@ class DiagnosaController extends Controller
 
     return response()->json(['success' => true, 'data' => $data]);
 }
+private function mapPrioritas($prioritas, $index = 0)
+{
+    if ($prioritas === 'Tinggi') return 3;
+    if ($prioritas === 'Sedang') return 2;
+    if ($prioritas === 'Rendah') return 1;
+
+    // fallback kalau null
+    return $index + 1;
 }
+}
+
+
