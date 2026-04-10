@@ -21,6 +21,15 @@ use App\Http\Controllers\SolusiController;
 use Kreait\Firebase\Factory;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification as FirebaseNotification;
+use App\Http\Controllers\BengkelController;
+use App\Http\Controllers\LayananController;
+
+
+Route::get('/login', function () {
+    return response()->json([
+        'message' => 'Silakan login melalui aplikasi mobile Anda.'
+    ], 401);
+})->name('login');
 
 /*
 |--------------------------------------------------------------------------
@@ -32,14 +41,31 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+Route::get('/verify-email', [AuthController::class, 'verifyEmail']);
+Route::post('/resend-verification', [AuthController::class, 'resendVerificationEmail']);
 
 Route::get('/motor-types', function () {
     return DB::table('motor_types')->get();
 });
 
-Route::post('/save-token', [ServiceController::class, 'saveToken']);
-Route::get('/motor-types', [ServiceController::class, 'motorTypes']);
-Route::post('/save-km', [ServiceController::class, 'saveKm']);
+Route::get('/diagnosa/statistik', [DiagnosaController::class, 'statistik']);
+Route::get('/bengkel', [BengkelController::class, 'index']);
+Route::get('/bengkel/{id}', [BengkelController::class, 'show']);
+Route::get('/layanan', [LayananController::class, 'index']);
+
+Route::middleware('auth:sanctum')->group(function () {
+
+    Route::post('/bengkel', [BengkelController::class, 'store']);
+    Route::put('/bengkel/{id}', [BengkelController::class, 'update']);
+    Route::delete('/bengkel/{id}', [BengkelController::class, 'destroy']);
+
+    Route::post('/layanan', [LayananController::class, 'store']);
+    Route::put('/layanan/{id}', [LayananController::class, 'update']);
+    Route::delete('/layanan/{id}', [LayananController::class, 'destroy']);
+});
+// Route::post('/save-token', [ServiceController::class, 'saveToken']);
+// Route::get('/motor-types', [ServiceController::class, 'motorTypes']);
+// Route::post('/save-km', [ServiceController::class, 'saveKm']);
 
 /*
 |--------------------------------------------------------------------------
@@ -52,7 +78,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::put('/profile', [AuthController::class, 'updateProfile']);
-    Route::get('/verify-email', [AuthController::class, 'verifyEmail']);
+   
 
     // USERS
     Route::get('users/count/{role}', [UserController::class, 'countByRole']);
@@ -65,7 +91,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // MASTER DATA
     Route::apiResource('gejala', GejalaController::class);
     Route::apiResource('kerusakan', KerusakanController::class);
-    Route::apiResource('solusi', SolusiController::class);
+    // Route::apiResource('solusi', SolusiController::class);
 
     // ATURAN
     Route::prefix('aturan')->group(function () {
@@ -113,6 +139,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/diagnosa', [DiagnosaController::class, 'index']);
         Route::post('/diagnosa', [DiagnosaController::class, 'storeMobile']);
         Route::get('/diagnosa/{id}', [DiagnosaController::class, 'show']);
+        
 
         // Route yang butuh token (auth:sanctum)
         // Route::middleware('auth:sanctum')->prefix('motor')->group(function () {

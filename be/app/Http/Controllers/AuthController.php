@@ -16,8 +16,6 @@ class AuthController extends Controller
 {
     public function login(Request $request)
     {
-        Log::info($request->all());
-
         $request->validate([
             'email' => 'required|email',
             'password' => 'required',
@@ -25,24 +23,13 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        // ❌ Email / password salah
         if (!$user || !Hash::check($request->password, $user->password)) {
-            return response()->json([
-                'message' => 'Email atau password salah'
-            ], 401);
+            return response()->json(['message' => 'Email atau password salah'], 401);
         }
 
-        // ❌ Role tidak valid
-        if (!in_array($user->role, ['superadmin', 'admin', 'pengguna'])) {
-            return response()->json([
-                'message' => 'Role tidak diizinkan'
-            ], 403);
-        }
-
-        // ✅ HANYA pengguna yang wajib verifikasi
         if ($user->role === 'pengguna' && !$user->email_verified_at) {
             return response()->json([
-                'message' => 'Email belum diverifikasi. Silakan cek email Anda.'
+                'message' => 'Email belum diverifikasi. Silakan cek email Anda atau kirim ulang email verifikasi.'
             ], 403);
         }
 
@@ -50,92 +37,74 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Login berhasil',
-            'user' => [
-                'id_user' => $user->id_user,
-                'nama' => $user->nama,
-                'email' => $user->email,
-                'role' => $user->role,
-                'foto' => $user->foto,
-                'no_hp' => $user->no_hp,
-                'alamat' => $user->alamat,
-            ],
-            'token' => $token,
+            'user' => $user,
+            'token' => $token
         ]);
     }
 
     public function register(Request $request)
     {
-        Log::info('Request body:', $request->all());
-        Log::info('JSON body:', $request->json()->all());
-
-        $validator = Validator::make($request->json()->all(), [
-            'nama' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email',
-            'password' => 'required|string|min:6',
-            'no_hp' => 'nullable|string|max:20',
-            'alamat' => 'nullable|string',
+        $validator = Validator::make($request->all(), [
+            'nama'        => 'required|string|max:255',
+            'email'       => 'required|string|email|max:255|unique:user,email',   // ← diperbaiki
+            'password'    => 'required|string|min:6',
+            'no_hp'       => 'nullable|string|max:20',
+            'alamat'      => 'nullable|string',
             'jenis_montor' => 'required|string|in:Primavera 150,Primavera S 150,LX 125,Sprint 150,Sprint S 150',
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validasi gagal',
-                'errors' => $validator->errors()
-            ], 422);
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
         try {
-            // ✅ Simpan user (BELUM VERIFIED)
             $user = User::create([
-                'nama' => $request->json('nama'),
-                'email' => $request->json('email'),
-                'password' => Hash::make($request->json('password')),
-                'role' => $request->json('role', 'pengguna'),
-                'no_hp' => $request->json('no_hp'),
-                'alamat' => $request->json('alamat'),
-                'jenis_montor' => $request->json('jenis_montor'),
-                'email_verified_at' => $request->json('role') !== 'pengguna' ? now() : null
+                'nama'              => $request->nama,
+                'email'             => $request->email,
+                'password'          => Hash::make($request->password),
+                'role'              => 'pengguna',
+                'no_hp'             => $request->no_hp,
+                'alamat'            => $request->alamat ?? null,
+                'jenis_montor'      => $request->jenis_montor,
+                'email_verified_at' => null,
             ]);
 
-            // ✅ Generate token verifikasi
+            // Generate token verifikasi
             $verifyToken = Str::random(64);
 
-            DB::table('email_verifications')->insert([
-                'email' => $user->email,
-                'token' => Hash::make($verifyToken),
-                'created_at' => Carbon::now()
-            ]);
+            DB::table('email_verifications')->updateOrInsert(
+                ['email' => $user->email],
+                [
+                    'token'      => Hash::make($verifyToken),
+                    'created_at' => now()
+                ]
+            );
 
-            // ✅ Link verifikasi
-            $verifyLink = url('/api/verify-email') .
-                "?token={$verifyToken}&email={$user->email}";
+            $verifyLink = url("/api/verify-email?token={$verifyToken}&email={$user->email}");
 
-            // ✅ Kirim email
+            // Kirim email
             Mail::raw(
-                "Klik link berikut untuk verifikasi email akun Anda:\n\n{$verifyLink}",
-                function ($message) use ($user) {
-                    $message->to($user->email)
-                        ->subject('Verifikasi Email Akun');
+                "Halo {$user->nama},\n\n" .
+                    "Terima kasih telah mendaftar.\n\n" .
+                    "Klik link berikut untuk verifikasi email:\n\n{$verifyLink}\n\n" .
+                    "Link berlaku 24 jam.",
+                function ($msg) use ($user) {
+                    $msg->to($user->email)
+                        ->subject('Verifikasi Email - Vespa Expert');
                 }
             );
 
             return response()->json([
-                'message' => 'Registrasi berhasil. Silakan cek email untuk verifikasi.',
-                'user' => [
-                    'id_user' => $user->id_user,
-                    'nama' => $user->nama,
-                    'email' => $user->email,
-                    'role' => $user->role,
-                    'foto' => $user->foto,
-                    'no_hp' => $user->no_hp,
-                    'alamat' => $user->alamat,
-                    'jenis_montor' => $user->jenis_montor,
-                ]
+                'message' => 'Registrasi berhasil. Silakan cek email Anda untuk verifikasi.'
             ], 201);
-        } catch (\Exception $e) {
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
             return response()->json([
-                'message' => 'Registrasi gagal',
-                'error' => $e->getMessage()
+                'message' => 'Email sudah terdaftar. Silakan gunakan email lain atau login.'
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Register Error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Terjadi kesalahan saat mendaftar. Coba lagi.'
             ], 500);
         }
     }
@@ -235,46 +204,60 @@ class AuthController extends Controller
 
     public function forgotPassword(Request $request)
     {
+        Log::info('FORGOT PASSWORD MASUK', ['email' => $request->email]);
+
         $request->validate([
             'email' => 'required|email'
         ]);
 
         $user = User::where('email', $request->email)->first();
 
-        // Jangan bocorkan apakah email ada atau tidak
         if (!$user) {
             return response()->json([
-                'message' => 'Jika email terdaftar, link reset password akan dikirim.'
+                'message' => 'Jika email terdaftar, kode OTP akan dikirim.'
             ]);
         }
 
-        // Generate token
-        $token = Str::random(64);
+        // Generate OTP 6 digit
+        $otp = mt_rand(100000, 999999);
 
-        // Simpan token (di-hash)
+        // Simpan OTP di tabel password_reset_tokens (di-hash)
         DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $request->email],
             [
-                'token' => Hash::make($token),
+                'token' => Hash::make($otp),
                 'created_at' => Carbon::now()
             ]
         );
 
-        // Link frontend reset password
-        $resetLink = env('FRONTEND_URL') .
-            "/reset-password?token={$token}&email={$request->email}";
+        try {
+            Mail::raw(
+                "Halo 👋
 
-        // Kirim email
-        Mail::raw(
-            "Klik link berikut untuk reset password:\n\n{$resetLink}\n\nLink berlaku 30 menit.",
-            function ($message) use ($request) {
-                $message->to($request->email)
-                    ->subject('Reset Password');
-            }
-        );
+Kamu meminta reset password Vespa Expert.
+
+Kode OTP kamu:
+{$otp}
+
+Masukkan kode ini di aplikasi.
+
+⚠️ Berlaku 30 menit.
+Jangan berikan kode ini ke siapa pun.",
+                function ($message) use ($request) {
+                    $message->to($request->email)
+                        ->subject('Kode Reset Password');
+                }
+            );
+
+            Log::info('EMAIL OTP BERHASIL DIKIRIM');
+        } catch (\Exception $e) {
+            Log::error('EMAIL OTP GAGAL', [
+                'error' => $e->getMessage()
+            ]);
+        }
 
         return response()->json([
-            'message' => 'Link reset password berhasil dikirim ke email.'
+            'message' => 'Silakan cek email Anda untuk kode OTP.'
         ]);
     }
 
@@ -325,32 +308,48 @@ class AuthController extends Controller
         ]);
     }
 
-    public function verifyEmail(Request $request)
-    {
-        $email = $request->query('email');
-        $token = $request->query('token');
+  public function verifyEmail(Request $request)
+{
+    $email = $request->query('email');
+    $token = $request->query('token');
 
-        $record = DB::table('email_verifications')
-            ->where('email', $email)
-            ->first();
-
-        if (!$record || !Hash::check($token, $record->token)) {
-            return response()->view('verify-failed');
-        }
-
-        // ✅ Update user
-        User::where('email', $email)->update([
-            'email_verified_at' => now()
-        ]);
-
-        // ✅ Hapus token
-        DB::table('email_verifications')
-            ->where('email', $email)
-            ->delete();
-
-        // ✅ Tampilkan halaman sukses
-        return view('verify-success');
+    if (!$email || !$token) {
+        return response()->json(['message' => 'Parameter tidak lengkap'], 400);
     }
+
+    $record = DB::table('email_verifications')
+        ->where('email', $email)
+        ->first();
+
+    if (!$record || !Hash::check($token, $record->token)) {
+        return response()->json(['message' => 'Token verifikasi tidak valid atau sudah kadaluarsa'], 400);
+    }
+
+    if (Carbon::parse($record->created_at)->addHours(24)->isPast()) {
+        DB::table('email_verifications')->where('email', $email)->delete();
+        return response()->json(['message' => 'Token verifikasi sudah kadaluarsa.'], 400);
+    }
+
+    // ✅ HANYA pakai DB raw langsung ke tabel 'user'
+    $affected = DB::table('user')
+        ->where('email', $email)
+        ->update(['email_verified_at' => now()]);
+
+    Log::info('VERIFY EMAIL', [
+        'email' => $email,
+        'rows_affected' => $affected,
+    ]);
+
+    // Cek hasil update
+    $userAfter = DB::table('user')->where('email', $email)->first();
+    Log::info('USER SETELAH UPDATE', ['email_verified_at' => $userAfter->email_verified_at]);
+
+    DB::table('email_verifications')->where('email', $email)->delete();
+
+    return response()->json([
+        'message' => 'Email berhasil diverifikasi. Silakan login.'
+    ]);
+}
 
     public function showResetForm(Request $request)
     {
@@ -391,5 +390,53 @@ class AuthController extends Controller
             ->delete();
 
         return redirect('/reset-success');
+    }
+
+    public function resendVerificationEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email'
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user) {
+            return response()->json(['message' => 'Email tidak terdaftar'], 404);
+        }
+
+        if ($user->email_verified_at) {
+            return response()->json(['message' => 'Email Anda sudah diverifikasi'], 400);
+        }
+
+        // Generate token baru
+        $verifyToken = Str::random(64);
+
+        DB::table('email_verifications')->updateOrInsert(
+            ['email' => $user->email],
+            [
+                'token'      => Hash::make($verifyToken),
+                'created_at' => now()
+            ]
+        );
+
+        $verifyLink = url("/api/verify-email?token={$verifyToken}&email={$user->email}");
+
+        try {
+            Mail::raw(
+                "Halo {$user->nama},\n\n" .
+                    "Berikut adalah link verifikasi email baru Anda:\n\n" .
+                    "{$verifyLink}\n\n" .
+                    "Link ini berlaku selama 24 jam.",
+                function ($msg) use ($user) {
+                    $msg->to($user->email)
+                        ->subject('Verifikasi Email Baru - Vespa Expert');
+                }
+            );
+
+            return response()->json(['message' => 'Email verifikasi telah dikirim ulang. Silakan cek inbox/spam.']);
+        } catch (\Exception $e) {
+            Log::error('Gagal kirim ulang email', ['error' => $e->getMessage()]);
+            return response()->json(['message' => 'Gagal mengirim email. Coba lagi nanti.'], 500);
+        }
     }
 }

@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 
+
 class DiagnosaController extends Controller
 {
     public function index(Request $request)
@@ -394,6 +395,30 @@ private function mapPrioritas($prioritas, $index = 0)
     // fallback kalau null
     return $index + 1;
 }
+
+ public function statistik()
+{
+    // 🔹 Kerusakan terbanyak
+    $kerusakan = DB::table('diagnosa')
+        ->select('kode_kerusakan', DB::raw('count(*) as total'))
+        ->groupBy('kode_kerusakan')
+        ->orderByDesc('total')
+        ->get();
+
+    // 🔹 Gejala terbanyak
+    $gejala = DB::table('diagnosa_gejala')
+        ->select('kode_gejala', DB::raw('count(*) as total'))
+        ->groupBy('kode_gejala')
+        ->orderByDesc('total')
+        ->get();
+
+    return response()->json([
+        'success' => true,
+        'kerusakan' => $kerusakan,
+        'gejala' => $gejala
+    ]);
+}
+
 }
 
 

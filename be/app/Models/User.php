@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 
 class User extends Authenticatable
 {
@@ -26,6 +27,7 @@ class User extends Authenticatable
         'no_hp',
         'alamat',
         'jenis_motor',
+        'email_verified_at',
         // 'km_terakhir',
         // 'tanggal_service_terakhir',
         // 'km_service_berikutnya',

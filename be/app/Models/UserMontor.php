@@ -1,24 +1,24 @@
 <?php
 
-namespace App\Models;
+// namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+// use Illuminate\Database\Eloquent\Model;
 
-class UserMotor extends Model
-{
-    protected $fillable = [
-        'user_id',
-        'motor_type_id',
-        'km_terakhir'
-    ];
+// class UserMotor extends Model
+// {
+//     protected $fillable = [
+//         'user_id',
+//         'motor_type_id',
+//         'km_terakhir'
+//     ];
 
-    public function motorType()
-    {
-        return $this->belongsTo(Montor::class);
-    }
+//     public function motorType()
+//     {
+//         return $this->belongsTo(Montor::class);
+//     }
 
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
-}
+//     public function user()
+//     {
+//         return $this->belongsTo(User::class);
+//     }
+// }

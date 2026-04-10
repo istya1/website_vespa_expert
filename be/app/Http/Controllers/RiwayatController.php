@@ -99,4 +99,5 @@ class RiwayatDiagnosisController extends Controller
             'message' => 'Riwayat berhasil dihapus.'
         ]);
     }
+
 }
