@@ -64,6 +64,7 @@ const MENU_ITEMS: MenuItem[] = [
     name: 'Konten Mobile',
     icon: Smartphone,
     submenu: [
+       { name: 'Bengkel', path: '/konten-mobile/bengkel', icon: Database },
       { name: 'Vespa Pedia', path: '/konten-mobile/vespa-pedia', icon: BookOpen },
       { name: 'Vespa Care', path: '/konten-mobile/services-template', icon: Wrench },
     ],

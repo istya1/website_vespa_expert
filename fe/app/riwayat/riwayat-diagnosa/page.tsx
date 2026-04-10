@@ -7,6 +7,7 @@ import KerusakanService from '@/services/kerusakan-service';
 import { Diagnosa, Kerusakan } from '@/types';
 import toast from 'react-hot-toast';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 // Extend tipe (sudah pakai hasil_diagnosis sesuai fix sebelumnya)
 interface ExtendedDiagnosa extends Diagnosa {
@@ -40,6 +41,17 @@ export default function DiagnosaPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
+  const [statistik, setStatistik] = useState<any>(null);
+  const fetchStatistik = async () => {
+    try {
+      const res = await fetch('http://localhost:8000/api/diagnosa/statistik');
+      const data = await res.json();
+      setStatistik(data);
+    } catch (error) {
+      console.error('Error fetch statistik:', error);
+    }
+  };
+
   // Untuk search & pagination
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,6 +59,7 @@ export default function DiagnosaPage() {
 
   useEffect(() => {
     fetchData();
+    fetchStatistik();
   }, []);
 
   const fetchData = async () => {
@@ -72,6 +85,22 @@ export default function DiagnosaPage() {
       setLoading(false);
     }
   };
+
+  const chartKerusakan = useMemo(() => {
+    if (!statistik?.kerusakan) return [];
+    return statistik.kerusakan.map((k: any) => ({
+      nama: k.kode_kerusakan,
+      jumlah: k.total
+    }));
+  }, [statistik]);
+
+  const chartGejala = useMemo(() => {
+    if (!statistik?.gejala) return [];
+    return statistik.gejala.map((g: any) => ({
+      nama: g.kode_gejala,
+      jumlah: g.total
+    }));
+  }, [statistik]);
 
   const formatTanggal = (dateString: string | undefined | null): string => {
     if (!dateString) return '-';
@@ -153,13 +182,48 @@ export default function DiagnosaPage() {
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <img
-            src="/load.png"           
+            src="/load.png"
             alt="Loading..."
             className="w-24 h-24"
           />
         </div>
       ) : (
         <>
+          {/* 📊 STATISTIK */}
+          {statistik && (
+            <div className="grid md:grid-cols-2 gap-6 mb-6">
+
+              {/* Grafik Kerusakan */}
+              <div className="bg-white p-4 rounded shadow">
+                <h3 className="font-semibold mb-3 text-red-600">
+                  Grafik Kerusakan Terbanyak
+                </h3>
+                <BarChart width={400} height={250} data={chartKerusakan}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="nama" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="jumlah" fill="#ef4444" />
+                </BarChart>
+              </div>
+
+              {/* Grafik Gejala */}
+              <div className="bg-white p-4 rounded shadow">
+                <h3 className="font-semibold mb-3 text-blue-600">
+                  Grafik Gejala Terbanyak
+                </h3>
+                <BarChart width={400} height={250} data={chartGejala}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="nama" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="jumlah" fill="#3b82f6" />
+                </BarChart>
+              </div>
+
+            </div>
+          )}
+
           <div className="bg-white rounded shadow overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead className="bg-gray-100">
@@ -226,7 +290,7 @@ export default function DiagnosaPage() {
           </div>
 
           {/* Pagination Controls */}
-        {filteredDiagnosa.length > 0 && totalPages > 1 && (
+          {filteredDiagnosa.length > 0 && totalPages > 1 && (
             <div className="flex justify-center items-center gap-2 mt-6">
               <button
                 onClick={() => goToPage(currentPage - 1)}
@@ -240,11 +304,10 @@ export default function DiagnosaPage() {
                 <button
                   key={page}
                   onClick={() => goToPage(page)}
-                  className={`px-4 py-2 rounded text-sm font-medium min-w-[40px] ${
-                    page === currentPage
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-gray-200 hover:bg-gray-300'
-                  }`}
+                  className={`px-4 py-2 rounded text-sm font-medium min-w-[40px] ${page === currentPage
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-gray-200 hover:bg-gray-300'
+                    }`}
                 >
                   {page}
                 </button>

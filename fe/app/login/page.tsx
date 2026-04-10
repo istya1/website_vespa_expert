@@ -99,15 +99,15 @@ export default function LoginPage() {
               required
             />
           </div>
-          <div className="flex justify-end">
+
+          {/* <div className="flex justify-end">
             <Link
               href="/forgot-password"
               className="text-sm text-primary-600 hover:text-primary-700 font-medium"
             >
               Lupa password?
             </Link>
-          </div>
-
+          </div> */}
 
           <button
             type="submit"
