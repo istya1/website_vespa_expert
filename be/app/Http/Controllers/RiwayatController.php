@@ -13,16 +13,19 @@ class RiwayatDiagnosisController extends Controller
      * Ambil semua riwayat milik user yang login
      */
     public function index(Request $request)
-    {
-        $diagnosa = riwayat::where('user_id', Auth::id())
-            ->orderBy('created_at', 'desc')
-            ->get();
+{
+    $user = Auth::user();
+    
+    $diagnosa = riwayat::where('user_id', $user->id_user) // ← ganti ini
+        ->orderBy('created_at', 'desc')
+        ->get();
 
-        return response()->json([
-            'success' => true,
-            'data'    => $diagnosa
-        ]);
-    }
+    return response()->json([
+        'success' => true,
+        'data'    => $diagnosa
+    ]);
+}
+
 
     /**
      * POST /api/mobile/diagnosa
@@ -38,7 +41,7 @@ class RiwayatDiagnosisController extends Controller
         ]);
 
         $diagnosa = riwayat::create([
-            'user_id'         => Auth::id(),
+            'user_id' => Auth::user()->id_user,
             'jenis_motor'     => $request->jenis_motor,
             'gejala_terpilih' => json_encode($request->gejala_terpilih),
             'hasil_diagnosis' => json_encode($request->hasil_diagnosis),
@@ -58,9 +61,9 @@ class RiwayatDiagnosisController extends Controller
      */
     public function show($id)
     {
-        $diagnosa = riwayat::where('id', $id)
-            ->where('user_id', Auth::id())
-            ->first();
+          $diagnosa = riwayat::where('id', $id)
+        ->where('user_id', Auth::user()->id_user) // ← ganti ini
+        ->first();
 
         if (!$diagnosa) {
             return response()->json([
@@ -82,8 +85,8 @@ class RiwayatDiagnosisController extends Controller
     public function destroy($id)
     {
         $diagnosa = riwayat::where('id', $id)
-            ->where('user_id', Auth::id())
-            ->first();
+        ->where('user_id', Auth::user()->id_user) // ← ganti ini
+        ->first();
 
         if (!$diagnosa) {
             return response()->json([

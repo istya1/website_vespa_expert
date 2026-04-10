@@ -136,7 +136,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Pastikan mengarah ke method yang benar
         Route::post('/mobile/proses-diagnosis', [KerusakanDiagnosisController::class, 'prosesDiagnosis']);
 
-        Route::get('/diagnosa', [DiagnosaController::class, 'index']);
+        Route::get('/diagnosa', [DiagnosaController::class, 'indexMobile']); 
         Route::post('/diagnosa', [DiagnosaController::class, 'storeMobile']);
         Route::get('/diagnosa/{id}', [DiagnosaController::class, 'show']);
         
