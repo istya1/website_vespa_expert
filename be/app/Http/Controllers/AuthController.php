@@ -80,7 +80,7 @@ class AuthController extends Controller
                 ]
             );
 
-            $verifyLink = url("/api/verify-email?token={$verifyToken}&email={$user->email}");
+          $verifyLink = config('app.url') . "/api/verify-email?token={$verifyToken}&email={$user->email}";
 
             // Kirim email
             Mail::raw(
