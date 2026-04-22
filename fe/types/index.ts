@@ -15,14 +15,12 @@ export interface User {
 }
 
 export interface Gejala {
+  [x: string]: string;
   kode_gejala: string;
   nama_gejala: string;
   jenis_motor: string;
-  kategori: string;
-  deskripsi?: string;
-  bobot: number;
-  created_at?: string;
-  updated_at?: string;
+  kategori_id: string;
+ 
 }
 
 export interface GejalaFormData {
@@ -44,7 +42,7 @@ export interface Kerusakan {
 
 export interface Solusi {
   kode_solusi: string;
-  nama_solusi: string;
+  nama_solusideskripsi: string;
   jenis_motor: 'Primavera 150' | 'Primavera S 150' | 'LX 125' | 'Sprint 150' | 'Sprint S 150';
 }
 

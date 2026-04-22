@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, UserCircle } from 'lucide-react';
 import DashboardLayout from '@/components/dashboard-layout';
 import UserService from '@/services/user-service';
 import { User } from '@/types';
@@ -12,7 +12,9 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
 
   const [showModal, setShowModal] = useState(false);
-
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingId, setDeletingId] = useState<number>(0);
+  const [deletingName, setDeletingName] = useState<string>('');
   const [formData, setFormData] = useState({
     nama: '',
     email: '',
@@ -43,54 +45,68 @@ export default function AdminPage() {
       setLoading(false);
     }
   };
+  const handleDelete = (id: number, nama: string) => {
+    setDeletingId(id);
+    setDeletingName(nama);
+    setShowDeleteModal(true);
+  };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Yakin ingin menghapus admin ini?')) return;
-
+  const confirmDelete = async () => {
+    const loadingToast = toast.loading('Menghapus admin...');
     try {
-      await UserService.delete(id);
-      toast.success('Admin berhasil dihapus');
+      await UserService.delete(deletingId);
+      toast.success('Admin berhasil dihapus', { id: loadingToast });
       fetchAdmins();
     } catch {
-      toast.error('Gagal menghapus admin');
+      toast.error('Gagal menghapus admin', { id: loadingToast });
+    } finally {
+      setShowDeleteModal(false);
+      setDeletingId(0);
+      setDeletingName('');
     }
   };
 
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setDeletingId(0);
+    setDeletingName('');
+  };
+
   const handleAddAdmin = async () => {
-  try {
+    try {
 
-    await UserService.create({
-      ...formData,
-      role: 'admin'
-    });
-
-    toast.success('Admin berhasil ditambahkan');
-
-    setShowModal(false);
-
-    setFormData({
-      nama: '',
-      email: '',
-      password: '',
-      alamat: '',
-    });
-
-    fetchAdmins();
-
-  } catch (error:any) {
-
-    console.error("Tambah admin error:", error.response?.data);
-
-    if (error.response?.data?.errors) {
-      Object.values(error.response.data.errors).forEach((msg:any) => {
-        toast.error(msg[0]);
+      await UserService.create({
+        ...formData,
+        role: 'admin'
       });
-    } else {
-      toast.error('Gagal menambah admin');
-    }
 
-  }
-};
+      toast.success('Admin berhasil ditambahkan');
+
+      setShowModal(false);
+
+      setFormData({
+        nama: '',
+        email: '',
+        password: '',
+        alamat: '',
+      });
+
+      fetchAdmins();
+
+    } catch (error: any) {
+
+      console.error("Tambah admin error:", error.response?.data);
+
+      if (error.response?.data?.errors) {
+        Object.values(error.response.data.errors).forEach((msg: any) => {
+          toast.error(msg[0]);
+        });
+      } else {
+        toast.error('Gagal menambah admin');
+      }
+
+    }
+  };
 
   const roleBadge = (role: string) => (
     <span
@@ -199,9 +215,7 @@ export default function AdminPage() {
                           </button>
 
                           <button
-                            onClick={() =>
-                              handleDelete(Number(user.id_user))
-                            }
+                            onClick={() => handleDelete(Number(user.id_user), user.nama)}
                             className="text-red-600 hover:text-red-800"
                             title="Hapus"
                           >
@@ -335,6 +349,53 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+      {showDeleteModal && (
+  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 animate-in fade-in zoom-in duration-200">
+      <div className="flex flex-col items-center text-center">
+
+        <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-4">
+          <Trash2 className="w-7 h-7 text-red-600" />
+        </div>
+
+        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+          Hapus admin ini?
+        </h3>
+        <p className="text-sm text-gray-500 mb-3">
+          Anda akan menghapus
+        </p>
+
+        <div className="w-full bg-gray-50 rounded-lg px-4 py-3 mb-3 flex items-center gap-3">
+         <UserCircle size={16} className="text-gray-400 flex-shrink-0" />
+          <span className="text-sm font-medium text-gray-800 text-left truncate">
+            {deletingName}
+          </span>
+        </div>
+
+        <p className="text-xs text-gray-400 mb-5">
+          Tindakan ini tidak dapat dibatalkan.
+        </p>
+
+        <div className="flex gap-3 w-full">
+          <button
+            onClick={cancelDelete}
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+          >
+            Batal
+          </button>
+          <button
+            onClick={confirmDelete}
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 active:scale-95 rounded-xl transition-all flex items-center justify-center gap-2"
+          >
+            <Trash2 size={15} />
+            Ya, hapus
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+)}
     </DashboardLayout >
   );
 }

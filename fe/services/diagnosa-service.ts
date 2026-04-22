@@ -9,7 +9,10 @@ interface MonthlyStat {
 
 const DiagnosaService = {
 
- 
+  async getRiwayatMobile() {
+    const res = await api.get('/mobile/diagnosa'); // ← endpoint mobile, filter by Auth user
+    return res.data?.data || res.data || [];
+  },
   async prosesDiagnosis(
     data: DiagnosisRequest
   ): Promise<DiagnosisResponse> {
@@ -17,7 +20,7 @@ const DiagnosaService = {
     return res.data;
   },
 
- async simpanDiagnosisMobile(data: {
+  async simpanDiagnosisMobile(data: {
     jenis_motor: string;
     gejala_terpilih: string[];
     hasil_diagnosis: any[];
@@ -26,18 +29,18 @@ const DiagnosaService = {
     return res.data;
   },
 
-async getAllAdmin() {
-  const res = await api.get('/diagnosa');  // ← kembali ke /diagnosa
-  console.log('RAW RESPONSE ADMIN (dari /diagnosa):', res.data);
-  return res.data?.data || res.data || [];
-},
+  async getAllAdmin() {
+    const res = await api.get('/diagnosa');  // ← kembali ke /diagnosa
+    console.log('RAW RESPONSE ADMIN (dari /diagnosa):', res.data);
+    return res.data?.data || res.data || [];
+  },
 
-async deleteAdmin(id: number) {
-  const res = await api.delete(`/diagnosa/${id}`); // ✅ hapus admin
-  return res.data;
-},
+  async deleteAdmin(id: number) {
+    const res = await api.delete(`/diagnosa/${id}`); // ✅ hapus admin
+    return res.data;
+  },
 
-async getMonthlyStats(): Promise<MonthlyStat[]> {
+  async getMonthlyStats(): Promise<MonthlyStat[]> {
     try {
       // Karena tidak ada method getAll() di service ini,
       // kita gunakan endpoint yang sudah ada → getAllAdmin() (asumsi mengembalikan semua diagnosa)

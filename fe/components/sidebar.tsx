@@ -48,29 +48,29 @@ const MENU_ITEMS: MenuItem[] = [
     ],
   },
   {
-    name: 'Master Data',
-    icon: Database,
+    name: 'Manajemen Pengguna',
+    icon: Users,
     submenu: [
       { name: 'User', path: '/master-data/user', icon: Users },
       {
         name: 'Admin',
         path: '/master-data/admin',
         icon: Wrench,
-        role: 'superadmin', // hanya superadmin
+        role: 'superadmin',
       },
     ],
   },
   {
-    name: 'Konten Mobile',
+    name: 'Layanan & Informasi',
     icon: Smartphone,
     submenu: [
-       { name: 'Bengkel', path: '/konten-mobile/bengkel', icon: Database },
+      { name: 'Bengkel', path: '/konten-mobile/bengkel', icon: Database },
       { name: 'Vespa Pedia', path: '/konten-mobile/vespa-pedia', icon: BookOpen },
       { name: 'Vespa Care', path: '/konten-mobile/services-template', icon: Wrench },
     ],
   },
   {
-    name: 'Riwayat',
+    name: 'Riwayat Aktifitas',
     icon: Clock,
     submenu: [
       {
@@ -144,11 +144,10 @@ export default function Sidebar() {
         <div key={item.name} className="mb-1">
           <button
             onClick={() => toggleMenu(item.name)}
-            className={`flex items-center justify-between w-full px-4 py-3 text-gray-700 hover:bg-primary-100 rounded-lg transition-colors ${
-              isOpen || item.submenu?.some((sub) => isActive(sub.path))
+            className={`flex items-center justify-between w-full px-4 py-3 text-gray-700 hover:bg-primary-100 rounded-lg transition-colors ${isOpen || item.submenu?.some((sub) => isActive(sub.path))
                 ? 'bg-primary-50 text-primary-700'
                 : ''
-            }`}
+              }`}
           >
             <div className="flex items-center gap-3">
               <Icon size={20} />
@@ -170,11 +169,10 @@ export default function Sidebar() {
                     key={subItem.path}
                     href={subItem.path || '#'}
                     onClick={closeSidebar}
-                    className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm ${
-                      isActive(subItem.path)
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm ${isActive(subItem.path)
                         ? 'bg-primary-600 text-white'
                         : 'text-gray-700 hover:bg-primary-50'
-                    }`}
+                      }`}
                   >
                     <SubIcon size={18} />
                     <span>{subItem.name}</span>
@@ -192,11 +190,10 @@ export default function Sidebar() {
         key={item.path}
         href={item.path || '#'}
         onClick={closeSidebar}
-        className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-1 ${
-          isActive(item.path)
+        className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-1 ${isActive(item.path)
             ? 'bg-primary-600 text-white'
             : 'text-gray-700 hover:bg-primary-50'
-        }`}
+          }`}
       >
         <Icon size={20} />
         <span className="font-medium">{item.name}</span>
@@ -242,9 +239,10 @@ export default function Sidebar() {
 
         {/* Menu */}
         <div className="flex-1 overflow-y-auto py-4 px-3">
-          <nav className="space-y-1">
-            {menuItems.map((item) => renderMenuItem(item))}
-          </nav>
+       
+         <nav className="space-y-1">
+  {menuItems.map((item) => renderMenuItem(item))}
+</nav>
         </div>
       </aside>
     </>

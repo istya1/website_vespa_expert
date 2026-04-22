@@ -91,7 +91,7 @@ export default function UserPage() {
                       scope="col"
                       className="hidden sm:table-cell px-3 py-3.5 text-left text-sm font-semibold text-gray-700"
                     >
-                      Jenis Monitor
+                      Jenis Montor
                     </th>
                   </tr>
                 </thead>
