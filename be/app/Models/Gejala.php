@@ -16,8 +16,8 @@ class Gejala extends Model
         'kode_gejala',
         'nama_gejala',
         'jenis_motor',
-        'kategori',
-        'bobot',
+        'kategori_id',
+        // 'bobot',
     ];
 
     // Relasi ke kerusakan melalui aturan
@@ -31,5 +31,10 @@ class Gejala extends Model
             'kode_gejala',
             'kode_kerusakan'
         );
+    }
+
+    public function kategori()
+    {
+        return $this->belongsTo(Kategori::class);
     }
 }

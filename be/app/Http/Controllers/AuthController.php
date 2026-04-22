@@ -14,42 +14,54 @@ use Carbon\Carbon;
 
 class AuthController extends Controller
 {
+    /**
+     * Proses login pengguna
+     */
     public function login(Request $request)
     {
+        // Validasi input email dan password
         $request->validate([
-            'email' => 'required|email',
+            'email'    => 'required|email',
             'password' => 'required',
         ]);
 
+        // Cari user berdasarkan email
         $user = User::where('email', $request->email)->first();
 
+        // Cek apakah user ditemukan dan password cocok
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json(['message' => 'Email atau password salah'], 401);
         }
 
+        // Khusus role 'pengguna', wajib verifikasi email terlebih dahulu
         if ($user->role === 'pengguna' && !$user->email_verified_at) {
             return response()->json([
                 'message' => 'Email belum diverifikasi. Silakan cek email Anda atau kirim ulang email verifikasi.'
             ], 403);
         }
 
+        // Buat token Sanctum untuk autentikasi
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'message' => 'Login berhasil',
-            'user' => $user,
-            'token' => $token
+            'user'    => $user,
+            'token'   => $token
         ]);
     }
 
+    /**
+     * Proses registrasi pengguna baru
+     */
     public function register(Request $request)
     {
+        // Validasi data registrasi
         $validator = Validator::make($request->all(), [
-            'nama'        => 'required|string|max:255',
-            'email'       => 'required|string|email|max:255|unique:user,email',   // ← diperbaiki
-            'password'    => 'required|string|min:6',
-            'no_hp'       => 'nullable|string|max:20',
-            'alamat'      => 'nullable|string',
+            'nama'         => 'required|string|max:255',
+            'email'        => 'required|string|email|max:255|unique:user,email',   // ← diperbaiki
+            'password'     => 'required|string|min:6',
+            'no_hp'        => 'nullable|string|max:20',
+            'alamat'       => 'nullable|string',
             'jenis_montor' => 'required|string|in:Primavera 150,Primavera S 150,LX 125,Sprint 150,Sprint S 150',
         ]);
 
@@ -58,6 +70,7 @@ class AuthController extends Controller
         }
 
         try {
+            // Buat user baru
             $user = User::create([
                 'nama'              => $request->nama,
                 'email'             => $request->email,
@@ -66,12 +79,13 @@ class AuthController extends Controller
                 'no_hp'             => $request->no_hp,
                 'alamat'            => $request->alamat ?? null,
                 'jenis_montor'      => $request->jenis_montor,
-                'email_verified_at' => null,
+                'email_verified_at' => null,        // Belum diverifikasi
             ]);
 
-            // Generate token verifikasi
+            // Generate token verifikasi email
             $verifyToken = Str::random(64);
 
+            // Simpan token verifikasi ke tabel email_verifications
             DB::table('email_verifications')->updateOrInsert(
                 ['email' => $user->email],
                 [
@@ -80,9 +94,10 @@ class AuthController extends Controller
                 ]
             );
 
-          $verifyLink = config('app.url') . "/api/verify-email?token={$verifyToken}&email={$user->email}";
+            // Buat link verifikasi
+            $verifyLink = config('app.url') . "/api/verify-email?token={$verifyToken}&email={$user->email}";
 
-            // Kirim email
+            // Kirim email verifikasi menggunakan Mail::raw
             Mail::raw(
                 "Halo {$user->nama},\n\n" .
                     "Terima kasih telah mendaftar.\n\n" .
@@ -109,33 +124,44 @@ class AuthController extends Controller
         }
     }
 
+    /**
+     * Logout dan hapus token saat ini
+     */
     public function logout(Request $request)
     {
+        // Hapus token yang sedang digunakan (currentAccessToken)
         $request->user()->currentAccessToken()->delete();
+
         return response()->json(['message' => 'Logout berhasil']);
     }
 
+    /**
+     * Ambil data profil user yang sedang login
+     */
     public function me(Request $request)
     {
         $user = $request->user();
 
-        // ✅ PERBAIKI: Return id_user, bukan id
+        // Return data user dengan field yang diinginkan (id_user bukan id)
         return response()->json([
-            'id_user' => $user->id_user,
-            'nama' => $user->nama,
-            'email' => $user->email,
-            'role' => $user->role,
-            'foto' => $user->foto,
-            'no_hp' => $user->no_hp,
-            'jenis_motor' => $user->jenis_motor,
-            'alamat' => $user->alamat,
+            'id_user'      => $user->id_user,
+            'nama'         => $user->nama,
+            'email'        => $user->email,
+            'role'         => $user->role,
+            'foto'        => $user->foto ? config('app.url') . '/storage/' . $user->foto : null, // ← fix
+            'no_hp'        => $user->no_hp,
+            'jenis_motor'  => $user->jenis_motor,   // Note: di register pakai jenis_montor
+            'alamat'       => $user->alamat,
         ]);
     }
 
+    /**
+     * Login khusus untuk role 'pengguna'
+     */
     public function loginPengguna(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
+            'email'    => 'required|email',
             'password' => 'required',
         ]);
 
@@ -147,7 +173,7 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // Izinkan role 'pengguna' dan 'montir' (kalau ada)
+        // Hanya izinkan role 'pengguna'
         if (!in_array($user->role, ['pengguna'])) {
             return response()->json([
                 'message' => 'Akses hanya untuk pengguna'
@@ -158,38 +184,41 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Login berhasil',
-            'user' => [
-                'id_user' => $user->id_user,
-                'nama' => $user->nama,
-                'email' => $user->email,
-                'role' => $user->role,
-                'foto' => $user->foto,
-                'no_hp' => $user->no_hp,
+            'user'    => [
+                'id_user'     => $user->id_user,
+                'nama'        => $user->nama,
+                'email'       => $user->email,
+                'role'        => $user->role,
+                'foto'        => $user->foto ? config('app.url') . '/storage/' . $user->foto : null, // ← fix
+                'no_hp'       => $user->no_hp,
                 'jenis_motor' => $user->jenis_motor,
-                'alamat' => $user->alamat,
+                'alamat'      => $user->alamat,
             ],
             'token' => $token,
         ]);
     }
 
+    /**
+     * Update profil pengguna (nama, no_hp, alamat, jenis_motor, password)
+     */
     public function updateProfile(Request $request)
     {
         $user = $request->user();
-
         if (!$user) {
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
         $request->validate([
-            'nama' => 'sometimes|string|max:255',
-            'no_hp' => 'sometimes|string|max:20',
-            'alamat' => 'sometimes|string',
+            'nama'        => 'sometimes|string|max:255',
+            'no_hp'       => 'sometimes|string|max:20',
+            'alamat'      => 'sometimes|string',
             'jenis_motor' => 'sometimes|string|max:50',
-            'password' => 'sometimes|string|min:6',
+            'password'    => 'sometimes|string|min:6',
         ]);
 
         $updateData = $request->only(['nama', 'no_hp', 'alamat', 'jenis_motor']);
 
+        // Hash password jika diisi
         if ($request->filled('password')) {
             $updateData['password'] = Hash::make($request->password);
         }
@@ -198,51 +227,52 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Profil berhasil diperbarui',
-            'user' => $user->fresh()
+            'user'    => $user->fresh()
         ]);
     }
 
+    /**
+     * Kirim OTP untuk lupa password
+     */
     public function forgotPassword(Request $request)
     {
         Log::info('FORGOT PASSWORD MASUK', ['email' => $request->email]);
 
+        //1. input email
         $request->validate([
             'email' => 'required|email'
         ]);
 
         $user = User::where('email', $request->email)->first();
 
+        // Tetap beri response sukses meski email tidak terdaftar (security best practice)
         if (!$user) {
             return response()->json([
                 'message' => 'Jika email terdaftar, kode OTP akan dikirim.'
             ]);
         }
 
-        // Generate OTP 6 digit
+        // 2. Generate OTP 6 digit
         $otp = mt_rand(100000, 999999);
 
-        // Simpan OTP di tabel password_reset_tokens (di-hash)
+        // 3. Simpan OTP yang di-hash ke tabel password_reset_tokens
         DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $request->email],
             [
-                'token' => Hash::make($otp),
+                'token'      => Hash::make($otp),
                 'created_at' => Carbon::now()
             ]
         );
 
         try {
+            // 4. Kirim email OTP
             Mail::raw(
-                "Halo 👋
-
-Kamu meminta reset password Vespa Expert.
-
-Kode OTP kamu:
-{$otp}
-
-Masukkan kode ini di aplikasi.
-
-⚠️ Berlaku 30 menit.
-Jangan berikan kode ini ke siapa pun.",
+                "Halo 👋\n\n" .
+                    "Kamu meminta reset password Vespa Expert.\n\n" .
+                    "Kode OTP kamu:\n{$otp}\n\n" .
+                    "Masukkan kode ini di aplikasi.\n" .
+                    "⚠️ Berlaku 30 menit.\n" .
+                    "Jangan berikan kode ini ke siapa pun.",
                 function ($message) use ($request) {
                     $message->to($request->email)
                         ->subject('Kode Reset Password');
@@ -251,9 +281,7 @@ Jangan berikan kode ini ke siapa pun.",
 
             Log::info('EMAIL OTP BERHASIL DIKIRIM');
         } catch (\Exception $e) {
-            Log::error('EMAIL OTP GAGAL', [
-                'error' => $e->getMessage()
-            ]);
+            Log::error('EMAIL OTP GAGAL', ['error' => $e->getMessage()]);
         }
 
         return response()->json([
@@ -261,11 +289,15 @@ Jangan berikan kode ini ke siapa pun.",
         ]);
     }
 
+    /**
+     * Reset password menggunakan OTP
+     */
     public function resetPassword(Request $request)
     {
+        //1. Input email + OTP + password
         $request->validate([
-            'email' => 'required|email',
-            'token' => 'required',
+            'email'    => 'required|email',
+            'token'    => 'required',
             'password' => 'required|min:6|confirmed'
         ]);
 
@@ -274,31 +306,25 @@ Jangan berikan kode ini ke siapa pun.",
             ->first();
 
         if (!$record) {
-            return response()->json([
-                'message' => 'Token reset tidak valid.'
-            ], 400);
+            return response()->json(['message' => 'Token reset tidak valid.'], 400);
         }
 
-        // Cek token
+        // 2. Verifikasi token OTP
         if (!Hash::check($request->token, $record->token)) {
-            return response()->json([
-                'message' => 'Token reset tidak valid.'
-            ], 400);
+            return response()->json(['message' => 'Token reset tidak valid.'], 400);
         }
 
-        // Cek expired (30 menit)
+        // 3. Cek masa berlaku (30 menit)
         if (Carbon::parse($record->created_at)->addMinutes(30)->isPast()) {
-            return response()->json([
-                'message' => 'Token reset sudah kedaluwarsa.'
-            ], 400);
+            return response()->json(['message' => 'Token reset sudah kedaluwarsa.'], 400);
         }
 
-        // Update password user
+        // 4. Update password
         User::where('email', $request->email)->update([
             'password' => Hash::make($request->password)
         ]);
 
-        // Hapus token setelah dipakai
+        // 5. Hapus token setelah berhasil digunakan
         DB::table('password_reset_tokens')
             ->where('email', $request->email)
             ->delete();
@@ -308,90 +334,53 @@ Jangan berikan kode ini ke siapa pun.",
         ]);
     }
 
-  public function verifyEmail(Request $request)
-{
-    $email = $request->query('email');
-    $token = $request->query('token');
-
-    if (!$email || !$token) {
-        return response()->json(['message' => 'Parameter tidak lengkap'], 400);
-    }
-
-    $record = DB::table('email_verifications')
-        ->where('email', $email)
-        ->first();
-
-    if (!$record || !Hash::check($token, $record->token)) {
-        return response()->json(['message' => 'Token verifikasi tidak valid atau sudah kadaluarsa'], 400);
-    }
-
-    if (Carbon::parse($record->created_at)->addHours(24)->isPast()) {
-        DB::table('email_verifications')->where('email', $email)->delete();
-        return response()->json(['message' => 'Token verifikasi sudah kadaluarsa.'], 400);
-    }
-
-    // ✅ HANYA pakai DB raw langsung ke tabel 'user'
-    $affected = DB::table('user')
-        ->where('email', $email)
-        ->update(['email_verified_at' => now()]);
-
-    Log::info('VERIFY EMAIL', [
-        'email' => $email,
-        'rows_affected' => $affected,
-    ]);
-
-    // Cek hasil update
-    $userAfter = DB::table('user')->where('email', $email)->first();
-    Log::info('USER SETELAH UPDATE', ['email_verified_at' => $userAfter->email_verified_at]);
-
-    DB::table('email_verifications')->where('email', $email)->delete();
-
-    return response()->json([
-        'message' => 'Email berhasil diverifikasi. Silakan login.'
-    ]);
-}
-
-    public function showResetForm(Request $request)
+    /**
+     * Verifikasi email melalui link
+     */
+    public function verifyEmail(Request $request)
     {
-        return view('reset-password', [
-            'token' => $request->query('token'),
-            'email' => $request->query('email'),
-        ]);
-    }
+        $email = $request->query('email');
+        $token = $request->query('token');
 
-    public function handleResetPassword(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'token' => 'required',
-            'password' => 'required|min:6|confirmed'
-        ]);
+        if (!$email || !$token) {
+            return response()->json(['message' => 'Parameter tidak lengkap'], 400);
+        }
 
-        $record = DB::table('password_reset_tokens')
-            ->where('email', $request->email)
+        $record = DB::table('email_verifications')
+            ->where('email', $email)
             ->first();
 
-        if (!$record || !Hash::check($request->token, $record->token)) {
-            return back()->with('error', 'Token tidak valid');
+        if (!$record || !Hash::check($token, $record->token)) {
+            return response()->json(['message' => 'Token verifikasi tidak valid atau sudah kadaluarsa'], 400);
         }
 
-        if (Carbon::parse($record->created_at)->addMinutes(30)->isPast()) {
-            return back()->with('error', 'Token sudah kadaluarsa');
+        // Cek expired (24 jam)
+        if (Carbon::parse($record->created_at)->addHours(24)->isPast()) {
+            DB::table('email_verifications')->where('email', $email)->delete();
+            return response()->json(['message' => 'Token verifikasi sudah kadaluarsa.'], 400);
         }
 
-        // ✅ Update password
-        User::where('email', $request->email)->update([
-            'password' => Hash::make($request->password)
+        // Update kolom email_verified_at di tabel 'user'
+        $affected = DB::table('user')
+            ->where('email', $email)
+            ->update(['email_verified_at' => now()]);
+
+        Log::info('VERIFY EMAIL', [
+            'email'         => $email,
+            'rows_affected' => $affected,
         ]);
 
-        // ✅ Hapus token
-        DB::table('password_reset_tokens')
-            ->where('email', $request->email)
-            ->delete();
+        // Hapus token verifikasi setelah berhasil
+        DB::table('email_verifications')->where('email', $email)->delete();
 
-        return redirect('/reset-success');
+        return response()->json([
+            'message' => 'Email berhasil diverifikasi. Silakan login.'
+        ]);
     }
 
+    /**
+     * Kirim ulang email verifikasi
+     */
     public function resendVerificationEmail(Request $request)
     {
         $request->validate([
@@ -438,5 +427,53 @@ Jangan berikan kode ini ke siapa pun.",
             Log::error('Gagal kirim ulang email', ['error' => $e->getMessage()]);
             return response()->json(['message' => 'Gagal mengirim email. Coba lagi nanti.'], 500);
         }
+    }
+
+    // Method untuk tampilan web reset password (jika ada halaman web)
+    public function showResetForm(Request $request)
+    {
+        return view('reset-password', [
+            'token' => $request->query('token'),
+            'email' => $request->query('email'),
+        ]);
+    }
+
+    // Proses reset password dari form web
+    public function handleResetPassword(Request $request)
+    {
+        $request->validate([
+            'email'    => 'required|email',
+            'token'    => 'required',
+            'password' => 'required|min:6|confirmed'
+        ]);
+
+        $record = DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->first();
+
+        if (!$record || !Hash::check($request->token, $record->token)) {
+            return back()->with('error', 'Token tidak valid');
+        }
+
+        if (Carbon::parse($record->created_at)->addMinutes(30)->isPast()) {
+            return back()->with('error', 'Token sudah kadaluarsa');
+        }
+
+        User::where('email', $request->email)->update([
+            'password' => Hash::make($request->password)
+        ]);
+
+        DB::table('password_reset_tokens')
+            ->where('email', $request->email)
+            ->delete();
+
+        return redirect('/reset-success');
+    }
+
+    public function countByRole($role)
+    {
+        $count = User::where('role', $role)->count();
+
+        return response()->json($count);
     }
 }

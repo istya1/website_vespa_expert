@@ -11,25 +11,21 @@ use App\Http\Controllers\VespaPediaController;
 use App\Http\Controllers\ServiceTemplateController;
 use App\Http\Controllers\UserServiceReminderController;
 use App\Http\Controllers\AturanController;
-use App\Http\Controllers\PasswordController;
-use App\Http\Controllers\VespaCareController;
-use App\Http\Controllers\ServiceController;
-use App\Http\Controllers\RiwayatDiagnosisController;
 use App\Http\Controllers\KerusakanDiagnosisController;
 use App\Http\Controllers\SuperAdminController;
-use App\Http\Controllers\SolusiController;
 use Kreait\Firebase\Factory;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification as FirebaseNotification;
 use App\Http\Controllers\BengkelController;
 use App\Http\Controllers\LayananController;
+use App\Http\Controllers\KategoriController;
 
 
 Route::get('/login', function () {
     return response()->json([
         'message' => 'Silakan login melalui aplikasi mobile Anda.'
     ], 401);
-})->name('login');
+})->name('login'); //fallback
 
 /*
 |--------------------------------------------------------------------------
@@ -78,7 +74,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::put('/profile', [AuthController::class, 'updateProfile']);
-   
+
 
     // USERS
     Route::get('users/count/{role}', [UserController::class, 'countByRole']);
@@ -87,6 +83,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('users/{id_user}/profile', [UserController::class, 'updateProfile']);
     Route::apiResource('users', UserController::class)->parameters(['users' => 'id_user']);
     Route::post('/users/{id}/change-password', [UserController::class, 'changePassword']);
+
 
     // MASTER DATA
     Route::apiResource('gejala', GejalaController::class);
@@ -121,6 +118,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route::get('vespa-care/template', [VespaCareController::class, 'getTemplates']);
     // Route::get('vespa-care/template/{id}', [VespaCareController::class, 'getTemplate']);
 
+    Route::get('/kategori', [KategoriController::class, 'index']);
+
     // USER REMINDER
     Route::get('user-reminders', [UserServiceReminderController::class, 'index']);
     Route::post('user-reminders/{id}/send-notification', [UserServiceReminderController::class, 'sendNotification']);
@@ -135,11 +134,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/proses-diagnosis', [KerusakanDiagnosisController::class, 'prosesDiagnosis']);
         // Pastikan mengarah ke method yang benar
         Route::post('/mobile/proses-diagnosis', [KerusakanDiagnosisController::class, 'prosesDiagnosis']);
-
-        Route::get('/diagnosa', [DiagnosaController::class, 'indexMobile']); 
+        Route::get('/bengkel', [BengkelController::class, 'index']);   // ← tambah ini
+        Route::get('/bengkel/{id}', [BengkelController::class, 'show']); // ← tambah ini
+        Route::get('/layanan', [LayananController::class, 'index']);    // ← tambah ini jika perlu
+        Route::get('/diagnosa', [DiagnosaController::class, 'indexMobile']);
         Route::post('/diagnosa', [DiagnosaController::class, 'storeMobile']);
         Route::get('/diagnosa/{id}', [DiagnosaController::class, 'show']);
-        
+
 
         // Route yang butuh token (auth:sanctum)
         // Route::middleware('auth:sanctum')->prefix('motor')->group(function () {
