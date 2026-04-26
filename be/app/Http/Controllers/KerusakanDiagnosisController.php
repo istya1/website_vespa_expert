@@ -9,165 +9,182 @@ use Illuminate\Http\Request;
 
 class KerusakanDiagnosisController extends Controller
 {
-    public function prosesDiagnosis(Request $request)
-    {
-        // Array untuk menyimpan hasil diagnosa final (100% cocok)
-        $diagnosisFinal = [];
+ public function prosesDiagnosis(Request $request)
+{
+    $diagnosisFinal       = [];
+    $kemungkinanKerusakan = [];
 
-        // Array untuk menyimpan kemungkinan kerusakan (tidak full match)
-        $kemungkinanKerusakan = [];
+    $gejalaTerpilih = $request->gejala ?? [];
+    $jenisMotor     = $request->jenis_motor;
 
-        // 1. ambil input user
-        // Ambil gejala yang dipilih user (default array kosong)
-        $gejalaTerpilih = $request->gejala ?? [];
-        // Ambil jenis motor
-        $jenisMotor     = $request->jenis_motor;
-
-        //2. Validasi: jenis motor wajib ada (mencegah diagnosa tanpa data)
-        if (!$jenisMotor) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Parameter jenis_motor diperlukan.'
-            ], 400);
-        }
-        // Validasi: gejala harus dipilih
-        if (empty($gejalaTerpilih)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gejala belum dipilih.'
-            ], 400);
-        }
-
-        //3. mengambil basis pengaturan aturan
-        // 🔥 Ambil semua aturan + relasi gejala dan kerusakan sesuai jenis motor
-        $aturanList = Aturan::with(['gejala', 'kerusakan'])
-            ->whereHas('kerusakan', function ($q) use ($jenisMotor) {
-                // Filter hanya aturan yang kerusakannya sesuai jenis motor
-                $q->where('jenis_motor', $jenisMotor);
-            })
-            ->get();
-
-        // 4. Loop setiap aturan
-        foreach ($aturanList as $aturan) {
-
-            // 5. Ambil semua kode gejala dalam aturan ini
-            $gejalaAturan = $aturan->gejala->pluck('kode_gejala')->toArray();
-
-            // Hitung total gejala dalam aturan
-            $totalGejala  = count($gejalaAturan);
-
-            // Jika aturan tidak punya gejala → skip
-            if ($totalGejala === 0) continue;
-
-            // 6. Cocokkan dengan input user Ambil gejala yang cocok antara user dan aturan
-            $gejalaMatch = array_intersect($gejalaTerpilih, $gejalaAturan);
-
-            // 7. Hitung jumlah gejala yang cocok
-            $jumlahMatch = count($gejalaMatch);
-            // Jika tidak ada yang cocok → skip aturan ini
-            if ($jumlahMatch === 0) continue;
-
-            // 8. Hitung total bobot dari gejala yang cocok
-            $totalBobot = Gejala::with('kategori')
-                ->whereIn('kode_gejala', $gejalaMatch)
-                ->get()
-                ->sum(function ($g) {
-                    return $g->kategori->bobot;
-                });
-
-            // 9. Tentukan prioritas berdasarkan total bobot
-            if ($totalBobot >= 5) {
-                $prioritas = 'Tinggi';
-            } elseif ($totalBobot >= 3) {
-                $prioritas = 'Sedang';
-            } else {
-                $prioritas = 'Rendah';
-            }
-
-            // Ambil gejala yang belum dipilih user (untuk saran tambahan)
-            $gejalaBelum = array_diff($gejalaAturan, $gejalaTerpilih);
-
-            //10. Hitung persentase kecocokan
-            $persentase  = ($jumlahMatch / $totalGejala) * 100;
-
-            //11. LOGIKA UTAMA
-            // =========================
-            // CASE A: FULL MATCH (100%)
-            // =========================
-            if ($jumlahMatch === $totalGejala) {
-
-                $diagnosisFinal[] = [
-                    'id_aturan'            => $aturan->id_aturan, // id aturan
-                    'kode_kerusakan'       => $aturan->kerusakan->kode_kerusakan, // kode kerusakan
-                    'nama_kerusakan'       => $aturan->kerusakan->nama_kerusakan, // nama kerusakan
-                    'solusi'               => $aturan->kerusakan->solusi, // solusi
-
-                    // karena semua gejala cocok → 100%
-                    'persentase_kecocokan' => 100,
-
-                    'jumlah_gejala'        => $totalGejala,
-                    'label'                => 'Diagnosis Final',
-                    'status'               => 'final',
-
-                    // 🔥 tambahan analisis
-                    'prioritas'            => $prioritas,
-                    'total_bobot'          => $totalBobot,
-                ];
-            } else {
-
-                // =========================
-                // CASE B: PARTIAL MATCH
-                // =========================
-                $kemungkinanKerusakan[] = [
-                    'id_aturan'      => $aturan->id_aturan,
-                    'kode_kerusakan' => $aturan->kerusakan->kode_kerusakan,
-                    'nama_kerusakan' => $aturan->kerusakan->nama_kerusakan,
-                    'solusi'         => $aturan->kerusakan->solusi,
-                    'label'          => 'Kemungkinan Kerusakan',
-
-                    // 🔥 prioritas berdasarkan bobot
-                    'prioritas'      => $prioritas,
-                    'total_bobot'    => $totalBobot,
-
-                    // Detail kecocokan
-                    'kecocokan' => [
-                        'persentase'      => round($persentase, 2), // persentase kecocokan
-                        'sudah_cocok'     => $jumlahMatch, // jumlah gejala cocok
-                        'total_rule'      => $totalGejala, // total gejala aturan
-                        'sisa_konfirmasi' => count($gejalaBelum), // gejala belum dipilih
-                    ],
-
-                    // Detail gejala (sudah & belum dipilih)
-                    'gejala' => [
-                        'sudah_dipilih'      => $this->getDetailGejala(array_values($gejalaMatch)),
-                        'perlu_dikonfirmasi' => $this->getDetailGejala(array_values($gejalaBelum)),
-                    ],
-
-                    'status' => 'kemungkinan',
-                ];
-            }
-        }
-
-        // 🔥 Tentukan status akhir diagnosa
-        if (!empty($diagnosisFinal) || !empty($kemungkinanKerusakan)) {
-            $statusDiagnosis = 'selesai';
-        } else {
-            $statusDiagnosis = 'tidak_ditemukan';
-        }
-
-        // Return hasil diagnosa ke frontend
-        return response()->json([
-            'success'               => true,
-            'status_diagnosis'      => $statusDiagnosis,
-            'message'               => $this->generatePesan(
-                $statusDiagnosis,
-                count($diagnosisFinal),
-                count($kemungkinanKerusakan)
-            ),
-            'hasil_diagnosis'       => $diagnosisFinal,
-            'kemungkinan_kerusakan' => $kemungkinanKerusakan,
-        ]);
+    if (!$jenisMotor) {
+        return response()->json(['success' => false, 'message' => 'Parameter jenis_motor diperlukan.'], 400);
     }
+    if (empty($gejalaTerpilih)) {
+        return response()->json(['success' => false, 'message' => 'Gejala belum dipilih.'], 400);
+    }
+
+    $aturanList = Aturan::with(['gejala', 'kerusakan'])
+        ->whereHas('kerusakan', function ($q) use ($jenisMotor) {
+            $q->where('jenis_motor', $jenisMotor);
+        })
+        ->get();
+
+    $kodeKerusakanFinal = [];
+
+    // ✅ PASS 1: Kumpulkan semua gejala yang sudah "terpakai" oleh full match
+    $gejalaSudahDipakaiFinal = [];
+
+    foreach ($aturanList as $aturan) {
+        $gejalaAturan = $aturan->gejala->pluck('kode_gejala')->toArray();
+        $totalGejala  = count($gejalaAturan);
+        if ($totalGejala === 0) continue;
+
+        $gejalaMatch = array_intersect($gejalaTerpilih, $gejalaAturan);
+        $jumlahMatch = count($gejalaMatch);
+
+        if ($jumlahMatch === $totalGejala) {
+            // Full match → catat semua gejala aturan ini sebagai "terpakai"
+            $gejalaSudahDipakaiFinal = array_merge($gejalaSudahDipakaiFinal, $gejalaAturan);
+            $kodeKerusakanFinal[]    = $aturan->kerusakan->kode_kerusakan;
+        }
+    }
+    $gejalaSudahDipakaiFinal = array_unique($gejalaSudahDipakaiFinal);
+
+    // ✅ PASS 2: Proses final + partial dengan filter ketat
+    foreach ($aturanList as $aturan) {
+        $gejalaAturan = $aturan->gejala->pluck('kode_gejala')->toArray();
+        $totalGejala  = count($gejalaAturan);
+        if ($totalGejala === 0) continue;
+
+        $gejalaMatch = array_intersect($gejalaTerpilih, $gejalaAturan);
+        $jumlahMatch = count($gejalaMatch);
+
+        if ($jumlahMatch === 0) continue;
+
+        $totalBobot = Gejala::whereIn('kode_gejala', $gejalaMatch)
+            ->get()
+            ->sum(fn($g) => $g->bobot);
+
+        $prioritas  = $totalBobot >= 5 ? 'Tinggi' : ($totalBobot >= 3 ? 'Sedang' : 'Rendah');
+        $persentase = ($jumlahMatch / $totalGejala) * 100;
+        $gejalaBelum = array_diff($gejalaAturan, $gejalaTerpilih);
+        $kodeKerusakan = $aturan->kerusakan->kode_kerusakan;
+
+        // ========================
+        // CASE A: FULL MATCH
+        // ========================
+        if ($jumlahMatch === $totalGejala) {
+
+            // ✅ CEK SUBSET: skip jika semua gejala aturan ini
+            // sudah tercakup oleh aturan full match LAIN yang lebih besar
+            $isSubsetDariAturanLain = $this->isSubsetDariAturanLain(
+                $gejalaAturan,
+                $aturanList,
+                $gejalaTerpilih,
+                $aturan->id_aturan // exclude diri sendiri
+            );
+
+            if ($isSubsetDariAturanLain) {
+                // Ini aturan kecil yang tercakup aturan besar → skip ke kemungkinan
+                // atau skip total, terserah kebutuhan bisnis
+                // Rekomendasi: skip total supaya tidak membingungkan
+                continue;
+            }
+
+            $diagnosisFinal[] = [
+                'id_aturan'            => $aturan->id_aturan,
+                'kode_kerusakan'       => $kodeKerusakan,
+                'nama_kerusakan'       => $aturan->kerusakan->nama_kerusakan,
+                'solusi'               => $aturan->kerusakan->solusi,
+                'persentase_kecocokan' => 100,
+                'jumlah_gejala'        => $totalGejala,
+                'label'                => 'Diagnosis Final',
+                'status'               => 'final',
+                'prioritas'            => $prioritas,
+                'total_bobot'          => $totalBobot,
+            ];
+
+        // ========================
+        // CASE B: PARTIAL MATCH
+        // ========================
+        } else {
+
+            // ✅ Skip jika kerusakan sudah ada di final
+            if (in_array($kodeKerusakan, $kodeKerusakanFinal)) continue;
+
+            // ✅ Skip jika SEMUA gejala yang cocok sudah dipakai oleh final match lain
+            // (artinya tidak ada informasi baru dari partial ini)
+            $gejalaMatchArray  = array_values($gejalaMatch);
+            $semuaSudahDipakai = count(array_diff($gejalaMatchArray, $gejalaSudahDipakaiFinal)) === 0;
+            if ($semuaSudahDipakai) continue;
+
+            // ✅ Threshold minimal 75% untuk bisa masuk kemungkinan
+            if ($persentase < 75) continue;
+
+            $kemungkinanKerusakan[] = [
+                'id_aturan'      => $aturan->id_aturan,
+                'kode_kerusakan' => $kodeKerusakan,
+                'nama_kerusakan' => $aturan->kerusakan->nama_kerusakan,
+                'solusi'         => $aturan->kerusakan->solusi,
+                'label'          => 'Kemungkinan Kerusakan',
+                'prioritas'      => $prioritas,
+                'total_bobot'    => $totalBobot,
+                'kecocokan'      => [
+                    'persentase'      => round($persentase, 2),
+                    'sudah_cocok'     => $jumlahMatch,
+                    'total_rule'      => $totalGejala,
+                    'sisa_konfirmasi' => count($gejalaBelum),
+                ],
+                'gejala'         => [
+                    'sudah_dipilih'      => $this->getDetailGejala(array_values($gejalaMatch)),
+                    'perlu_dikonfirmasi' => $this->getDetailGejala(array_values($gejalaBelum)),
+                ],
+                'status'         => 'kemungkinan',
+            ];
+        }
+    }
+
+    // ✅ Safety filter post-loop
+    $kemungkinanKerusakan = array_values(array_filter(
+        $kemungkinanKerusakan,
+        fn($k) => !in_array($k['kode_kerusakan'], $kodeKerusakanFinal)
+    ));
+
+    $statusDiagnosis = (!empty($diagnosisFinal) || !empty($kemungkinanKerusakan))
+        ? 'selesai'
+        : 'tidak_ditemukan';
+
+    return response()->json([
+        'success'               => true,
+        'status_diagnosis'      => $statusDiagnosis,
+        'message'               => $this->generatePesan($statusDiagnosis, count($diagnosisFinal), count($kemungkinanKerusakan)),
+        'hasil_diagnosis'       => $diagnosisFinal,
+        'kemungkinan_kerusakan' => $kemungkinanKerusakan,
+    ]);
+}
+
+// ✅ Helper: cek apakah gejala aturan ini adalah subset dari aturan full match lain
+private function isSubsetDariAturanLain($gejalaAturan, $aturanList, $gejalaTerpilih, $excludeId): bool
+{
+    foreach ($aturanList as $aturanLain) {
+        // Skip diri sendiri
+        if ($aturanLain->id_aturan === $excludeId) continue;
+
+        $gejalaAturanLain = $aturanLain->gejala->pluck('kode_gejala')->toArray();
+        $matchLain        = count(array_intersect($gejalaTerpilih, $gejalaAturanLain));
+
+        // Aturan lain harus full match
+        if ($matchLain !== count($gejalaAturanLain)) continue;
+
+        // Cek apakah semua gejala aturan ini ada di dalam aturan lain
+        $sisaGejala = array_diff($gejalaAturan, $gejalaAturanLain);
+        if (count($sisaGejala) === 0) {
+            return true; // ✅ ini adalah subset
+        }
+    }
+    return false;
+}
 
     // =========================
     // FUNCTION: GENERATE PESAN
@@ -209,8 +226,8 @@ class KerusakanDiagnosisController extends Controller
             ->map(fn($g) => [
                 'kode_gejala' => $g->kode_gejala,
                 'nama_gejala' => $g->nama_gejala,
-                'kategori'    => $g->kategori->nama,
-                'bobot'       => $g->kategori->bobot, // 🔥 penting
+                'kategori'    => $g->kategori,
+                'bobot'       => $g->bobot, // 🔥 penting
             ])
             ->toArray();
     }
@@ -220,10 +237,8 @@ class KerusakanDiagnosisController extends Controller
     // =========================
     public function getVespaSmartData(Request $request)
     {
-        // Ambil jenis motor
         $jenisMotor = $request->query('jenis_motor');
 
-        // Validasi
         if (!$jenisMotor) {
             return response()->json([
                 'success' => false,
@@ -231,20 +246,17 @@ class KerusakanDiagnosisController extends Controller
             ], 400);
         }
 
-        // Ambil gejala lalu kelompokkan berdasarkan kategori
-        $gejala = Gejala::with('kategori')
-            ->where('jenis_motor', $jenisMotor)
+        // ❌ HAPUS with('kategori')
+        $gejala = Gejala::where('jenis_motor', $jenisMotor)
             ->get()
             ->groupBy(function ($g) {
-                return $g->kategori->nama;
+                return $g->kategori; // ✅ langsung string
             });
 
-        // Ambil jumlah aturan
         $aturan = Aturan::with(['gejala', 'kerusakan'])
             ->whereHas('kerusakan', fn($q) => $q->where('jenis_motor', $jenisMotor))
             ->get();
 
-        // Return data ke frontend
         return response()->json([
             'success'            => true,
             'jenis_motor'        => $jenisMotor,
