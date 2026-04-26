@@ -41,10 +41,10 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [stats, setStats] = useState<Stat[]>([]);
   const [totalAdmin, setTotalAdmin] = useState(0);
-
+  const [recentAdmins, setRecentAdmins] = useState<any[]>([]);
+  const [recentUsers, setRecentUsers] = useState<any[]>([]);
   const [userChartData, setUserChartData] = useState<any>({ labels: [], datasets: [] });
   const [adminChartData, setAdminChartData] = useState<any>({ labels: [], datasets: [] });
-
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -61,12 +61,15 @@ export default function DashboardPage() {
         const currentUser = await AuthService.getUser();
         setUser(currentUser);
 
-        const [totalGejala, totalKerusakan, monthlyStats, totalPengguna] = await Promise.all([
+        const [totalGejala, totalKerusakan, monthlyStats, totalPengguna, recentUsersData] = await Promise.all([
           GejalaService.count?.() ?? GejalaService.getAll().then(res => res.length),
           KerusakanService.count?.() ?? KerusakanService.getAll().then(res => res.length),
-          UserService.getMonthlyUserStats?.() ?? [],
-          UserService.getAll?.().then(res => res.length) ?? 0,
+          UserService.getMonthlyUserStats(),
+          UserService.count(),
+          UserService.getRecent(5),
         ]);
+
+        setRecentUsers(recentUsersData);
 
         let statsData: Stat[] = [
           { title: 'Total Gejala', value: totalGejala, icon: AlertTriangle, color: 'border-yellow-500' },
@@ -74,11 +77,13 @@ export default function DashboardPage() {
           { title: 'Total Pengguna', value: totalPengguna, icon: Users, color: 'border-emerald-500' },
         ];
 
-        // 🔥 SUPER ADMIN TAMBAHAN
         if (currentUser?.role === 'superadmin') {
-          const adminCount = await UserService.countByRole?.('admin') ?? 0;
+          const [adminCount, adminsData] = await Promise.all([
+            UserService.countByRole('admin'),
+            UserService.getByRole('admin'),
+          ]);
           setTotalAdmin(adminCount);
-
+          setRecentAdmins(adminsData.slice(0, 5));
           statsData.push({
             title: 'Total Admin',
             value: adminCount,
@@ -89,10 +94,8 @@ export default function DashboardPage() {
 
         setStats(statsData);
 
-        // 🔥 CHART
         if (monthlyStats.length > 0) {
           const months = monthlyStats.map((s: MonthlyUserStat) => s.month);
-
           setUserChartData({
             labels: months,
             datasets: [{
@@ -101,7 +104,6 @@ export default function DashboardPage() {
               backgroundColor: 'rgba(16, 185, 129, 0.7)',
             }],
           });
-
           setAdminChartData({
             labels: months,
             datasets: [{
@@ -129,7 +131,14 @@ export default function DashboardPage() {
     maintainAspectRatio: false,
   };
 
-  // 🔥 LOADING
+  const getUserLabel = (u: any) =>
+    u?.name ?? u?.nama ?? u?.username ?? '—';
+
+  const getUserInitial = (u: any) =>
+    (u?.name ?? u?.nama ?? u?.username ?? u?.email ?? '??')
+      .slice(0, 2)
+      .toUpperCase();
+
   if (loading) {
     return (
       <DashboardLayout title="Loading...">
@@ -146,17 +155,17 @@ export default function DashboardPage() {
     >
       <div className="space-y-8">
 
-        {/* 🔹 STAT */}
+        {/* STAT CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-5">
           {stats.map((stat, i) => (
             <StatCard key={i} {...stat} />
           ))}
         </div>
 
-        {/* 🔹 CHART */}
+        {/* GRAFIK + TABEL PENGGUNA TERBARU */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          {/* USER */}
+          {/* Grafik Pengguna Baru */}
           <div className="bg-white p-4 rounded-xl shadow">
             <h3 className="mb-3 font-semibold">Pengguna Baru</h3>
             <div className="h-[300px]">
@@ -164,38 +173,160 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* 🔥 ADMIN (SUPER ADMIN ONLY) */}
-          {user?.role === 'superadmin' && (
+          {/* Tabel Pengguna Terbaru */}
+          <div className="bg-white p-4 rounded-xl shadow">
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-semibold">Pengguna Terdaftar Terbaru</h3>
+              <a href="/dashboard/pengguna" className="text-sm text-blue-500 hover:underline">
+                Lihat semua →
+              </a>
+            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-gray-400 border-b">
+                  <th className="pb-2 font-medium">Nama</th>
+                  <th className="pb-2 font-medium">Email</th>
+                  <th className="pb-2 font-medium">Bergabung</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="py-6 text-center text-gray-400">
+                      Belum ada pengguna terdaftar
+                    </td>
+                  </tr>
+                ) : recentUsers.map((u, i) => (
+                  <tr key={i} className="border-b last:border-0">
+                    <td className="py-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold flex items-center justify-center flex-shrink-0">
+                          {getUserInitial(u)}
+                        </div>
+                        <span>{getUserLabel(u)}</span>
+                      </div>
+                    </td>
+                    <td className="py-2 text-gray-400 text-xs">{u.email}</td>
+                    <td className="py-2 text-gray-400 text-xs">
+                      {u.created_at
+                        ? new Date(u.created_at).toLocaleDateString('id-ID', {
+                            day: 'numeric', month: 'short', year: 'numeric',
+                          })
+                        : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+        {/* SUPER ADMIN ONLY */}
+        {user?.role === 'superadmin' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            {/* Grafik Admin Baru */}
             <div className="bg-white p-4 rounded-xl shadow">
               <h3 className="mb-3 font-semibold">Admin Baru</h3>
               <div className="h-[300px]">
                 <Bar data={adminChartData} options={chartOptions} />
               </div>
             </div>
-          )}
-        </div>
 
-        {/* 🔥 SUPER ADMIN SECTION */}
-        {/* {user?.role === 'superadmin' && (
-          <div className="bg-white p-6 rounded-xl shadow">
-            <h2 className="font-semibold text-lg mb-2">System Control</h2>
-            <p className="text-gray-500 text-sm mb-4">
-              Anda memiliki akses penuh untuk mengelola sistem dan admin.
-            </p>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="border p-4 rounded-lg">
-                <p className="text-sm text-gray-400">Manajemen Admin</p>
-                <p className="font-semibold">Tambah / Hapus Admin</p>
+            {/* Tabel Daftar Admin */}
+            <div className="bg-white p-4 rounded-xl shadow">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-semibold">Daftar Admin Terdaftar</h3>
+                <a href="/dashboard/admin" className="text-sm text-blue-500 hover:underline">
+                  Lihat semua →
+                </a>
               </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-gray-400 border-b">
+                    <th className="pb-2 font-medium">Nama</th>
+                    <th className="pb-2 font-medium">Status</th>
+                    <th className="pb-2 font-medium">Bergabung</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentAdmins.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="py-6 text-center text-gray-400">
+                        Belum ada admin terdaftar
+                      </td>
+                    </tr>
+                  ) : recentAdmins.map((admin, i) => (
+                    <tr key={i} className="border-b last:border-0">
+                      <td className="py-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold flex items-center justify-center flex-shrink-0">
+                            {getUserInitial(admin)}
+                          </div>
+                          <span>{getUserLabel(admin)}</span>
+                        </div>
+                      </td>
+                      <td className="py-2">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          admin.is_active !== false
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-gray-100 text-gray-500'
+                        }`}>
+                          {admin.is_active !== false ? 'Aktif' : 'Nonaktif'}
+                        </span>
+                      </td>
+                      <td className="py-2 text-gray-400 text-xs">
+                        {admin.created_at
+                          ? new Date(admin.created_at).toLocaleDateString('id-ID', {
+                              month: 'short', year: 'numeric',
+                            })
+                          : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-              <div className="border p-4 rounded-lg">
-                <p className="text-sm text-gray-400">Monitoring Sistem</p>
-                <p className="font-semibold">Statistik & Aktivitas</p>
+            {/* Distribusi Pengguna */}
+            <div className="bg-white p-4 rounded-xl shadow lg:col-span-2">
+              <h3 className="font-semibold mb-4">Distribusi Pengguna</h3>
+              <div className="space-y-4 max-w-md">
+                {[
+                  {
+                    label: 'Pengguna biasa',
+                    value: (stats.find(s => s.title === 'Total Pengguna')?.value ?? 0) - totalAdmin,
+                    color: 'bg-emerald-500',
+                  },
+                  {
+                    label: 'Admin',
+                    value: totalAdmin,
+                    color: 'bg-blue-500',
+                  },
+                ].map(({ label, value, color }) => {
+                  const total = stats.find(s => s.title === 'Total Pengguna')?.value ?? 0;
+                  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+                  return (
+                    <div key={label}>
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600">{label}</span>
+                        <span className="text-gray-400 text-xs">{value} ({pct}%)</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-700 ${color}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
+
           </div>
-        )} */}
+        )}
 
       </div>
     </DashboardLayout>

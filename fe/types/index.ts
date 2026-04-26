@@ -12,15 +12,15 @@ export interface User {
   alamat?: string | null;
   created_at?: string;
   updated_at?: string;
+  is_active?: boolean;
 }
 
 export interface Gejala {
-  [x: string]: string;
   kode_gejala: string;
   nama_gejala: string;
   jenis_motor: string;
-  kategori_id: string;
- 
+  kategori: string;
+  bobot: number;
 }
 
 export interface GejalaFormData {

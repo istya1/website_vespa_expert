@@ -198,6 +198,35 @@ class UserService {
       return [];   // Kembalikan array kosong jika terjadi error
     }
   }
+
+  /**
+ * Mengambil user berdasarkan role tertentu
+ * Contoh: getByRole('admin') → semua admin
+ */
+async getByRole(role: string): Promise<User[]> {
+  return await this.get(role);
+}
+
+/**
+ * Mengambil N user terbaru berdasarkan created_at
+ * Default: 5 user terbaru
+ */
+async getRecent(limit = 5): Promise<User[]> {
+  const all = await this.getAll();
+  return all
+    .filter(u => !!u.created_at)
+    .sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime())
+    .slice(0, limit);
+}
+
+/**
+ * Menghitung total semua user (semua role)
+ */
+async count(): Promise<number> {
+  const all = await this.getAll();
+  return all.length;
+}
+
 }
 
 // Export instance tunggal (Singleton Pattern)
