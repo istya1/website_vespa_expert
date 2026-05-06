@@ -85,7 +85,7 @@ class UserController extends Controller
     /**
      * Menampilkan detail satu user berdasarkan id_user
      */
-    public function show($id_user)
+    public function show(int $id_user)
     {
         $user = User::where('id_user', $id_user)->first();
 
@@ -102,7 +102,7 @@ class UserController extends Controller
      * Mengupdate data profil user
      * jenis_motor tetap bisa diupdate di sini
      */
-    public function update(Request $request, $id_user)
+   public function update(Request $request, int $id_user)
     {
         try {
             // Cari user, jika tidak ditemukan langsung error 404
@@ -139,7 +139,7 @@ class UserController extends Controller
     /**
      * Menghapus user beserta foto profilnya (jika ada)
      */
-    public function destroy($id_user)
+    public function destroy(int $id_user)
     {
         try {
             $user = User::where('id_user', $id_user)->firstOrFail();
@@ -170,7 +170,7 @@ class UserController extends Controller
      * Upload foto profil user
      * Otomatis menghapus foto lama sebelum upload yang baru
      */
-    public function uploadPhoto(Request $request, $id_user)
+    public function uploadPhoto(Request $request, int $id_user)
     {
         // Validasi file foto
         $validator = Validator::make($request->all(), [
@@ -222,7 +222,7 @@ class UserController extends Controller
     /**
      * Mengubah password user (dengan verifikasi password lama)
      */
-    public function changePassword(Request $request, $id_user)
+   public function changePassword(Request $request, int $id_user)
     {
         $validator = Validator::make($request->all(), [
             'oldPassword' => 'required|string',
@@ -270,7 +270,7 @@ class UserController extends Controller
      * Menghitung jumlah user berdasarkan role tertentu
      * Contoh: /api/users/count/admin atau /api/users/count/pengguna
      */
-    public function countByRole($role)
+    public function countByRole(string $role)
     {
         try {
             $count = User::where('role', $role)->count();

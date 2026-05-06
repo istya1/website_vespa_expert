@@ -14,6 +14,7 @@ use Carbon\Carbon;
 
 class AuthController extends Controller
 {
+    
     /**
      * Proses login pengguna
      */
@@ -470,7 +471,7 @@ class AuthController extends Controller
         return redirect('/reset-success');
     }
 
-    public function countByRole($role)
+    public function countByRole(string $role)
     {
         $count = User::where('role', $role)->count();
 

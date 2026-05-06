@@ -16,8 +16,7 @@ class Gejala extends Model
         'kode_gejala',
         'nama_gejala',
         'jenis_motor',
-        'kategori',
-        'deskripsi',
+        'kategori_id',
         'bobot',
     ];
 
@@ -33,8 +32,8 @@ class Gejala extends Model
             'kode_kerusakan'
         );
     }
-    public function kategori()
+   public function kategori()
 {
-    return $this->belongsTo(Kategori::class);
+    return $this->belongsTo(Kategori::class, 'kategori_id');
 }
 }

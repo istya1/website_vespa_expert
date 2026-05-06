@@ -27,7 +27,7 @@ class UserServiceReminderController extends Controller
         return response()->json($reminders);
     }
 
-    public function sendNotification($id)
+    public function sendNotification(int $id)
     {
         $reminder = UserServiceReminder::findOrFail($id);
 

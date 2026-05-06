@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Kerusakan; 
+use App\Models\Kerusakan;
 use Illuminate\Http\Request;
 
 class KerusakanController extends Controller
@@ -33,6 +33,7 @@ class KerusakanController extends Controller
         // Validasi input dari user
         $request->validate([
             'nama_kerusakan' => 'required|max:100', // nama kerusakan wajib
+            'kategori' => 'required|max:50',
             'solusi' => 'required', // solusi wajib diisi
             'jenis_motor' => 'required|in:Primavera 150,Primavera S 150,LX 125,Sprint 150,Sprint S 150', // jenis motor harus valid
         ]);
@@ -68,6 +69,7 @@ class KerusakanController extends Controller
         $kerusakan = Kerusakan::create([
             'kode_kerusakan' => $kode, // kode otomatis
             'nama_kerusakan' => $request->nama_kerusakan,
+            'kategori'       => $request->kategori,
             'solusi' => $request->solusi,
             'jenis_motor' => $jenisMotor,
         ]);
@@ -80,7 +82,7 @@ class KerusakanController extends Controller
     }
 
     // FUNCTION: UPDATE KERUSAKAN
-    public function update(Request $request, $kode)
+    public function update(Request $request, string $kode)
     {
         // Cari data kerusakan berdasarkan primary key (kode_kerusakan)
         // Jika tidak ditemukan, otomatis error 404
@@ -89,12 +91,14 @@ class KerusakanController extends Controller
         // Validasi input
         $request->validate([
             'nama_kerusakan' => 'required|max:100',
+            'kategori'       => 'required|max:50',
             'solusi' => 'required',
         ]);
 
         // Update data kerusakan
         $kerusakan->update([
             'nama_kerusakan' => $request->nama_kerusakan,
+            'kategori'       => $request->kategori,
             'solusi' => $request->solusi,
         ]);
 
@@ -106,7 +110,7 @@ class KerusakanController extends Controller
     }
 
     // FUNCTION: HAPUS KERUSAKAN
-    public function destroy($kode)
+    public function destroy(string $kode)
     {
         // Cari data berdasarkan kode, jika tidak ada akan error 404
         Kerusakan::findOrFail($kode)->delete();

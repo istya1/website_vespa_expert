@@ -59,7 +59,7 @@ class RiwayatDiagnosisController extends Controller
      * GET /api/mobile/diagnosa/{id}
      * Detail satu riwayat
      */
-    public function show($id)
+    public function show(int $id)
     {
           $diagnosa = riwayat::where('id', $id)
         ->where('user_id', Auth::user()->id_user) // ← ganti ini
@@ -82,7 +82,7 @@ class RiwayatDiagnosisController extends Controller
      * DELETE /api/mobile/diagnosa/{id}
      * Hapus riwayat
      */
-    public function destroy($id)
+    public function destroy(int $id)
     {
         $diagnosa = riwayat::where('id', $id)
         ->where('user_id', Auth::user()->id_user) // ← ganti ini

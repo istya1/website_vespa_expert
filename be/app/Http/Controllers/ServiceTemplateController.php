@@ -41,7 +41,7 @@ class ServiceTemplateController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request,int $id)
     {
         $template = ServiceTemplate::findOrFail($id);
 
@@ -60,7 +60,7 @@ class ServiceTemplateController extends Controller
         ]);
     }
 
-    public function destroy($id)
+    public function destroy(int $id)
     {
         $template = ServiceTemplate::findOrFail($id);
         $template->delete();

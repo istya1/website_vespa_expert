@@ -21,7 +21,7 @@ class BengkelController extends Controller
             ->map(function ($item) {
                 // Tambahkan atribut gambar_url (link lengkap ke gambar)
                 $item->gambar_url = $item->gambar
-                    ? config('app.url') . '/storage/' . $item->gambar
+                    ? asset('storage/' . $item->gambar)
                     : null;
                 return $item;
             });
@@ -69,7 +69,7 @@ class BengkelController extends Controller
     }
 
     // 🔹 SHOW (detail)
-    public function show($id)
+    public function show(int $id)
     {
         // Cari bengkel berdasarkan id + relasi layanan
         $bengkel = Bengkel::with('layanan')->findOrFail($id);
@@ -84,7 +84,7 @@ class BengkelController extends Controller
     }
 
     // 🔹 UPDATE
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id)
     {
         // Cari data bengkel
         $bengkel = Bengkel::findOrFail($id);
@@ -132,7 +132,7 @@ class BengkelController extends Controller
     }
 
     // 🔹 DELETE
-    public function destroy($id)
+    public function destroy(int $id)
     {
         // Cari data bengkel
         $bengkel = Bengkel::findOrFail($id);

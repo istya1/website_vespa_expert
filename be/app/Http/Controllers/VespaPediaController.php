@@ -14,7 +14,7 @@ class VespaPediaController extends Controller
      * Sanitize nama file untuk menghindari masalah keamanan dan kerapian
      * Menghapus spasi, karakter spesial, dan mengubah ke lowercase
      */
-    private function sanitizeFilename($filename)
+    private function sanitizeFilename(string $filename)
     {
         // Pisahkan nama file dan ekstensi
         $extension = pathinfo($filename, PATHINFO_EXTENSION);
@@ -142,7 +142,7 @@ class VespaPediaController extends Controller
     /**
      * Menampilkan detail satu konten Vespa Pedia
      */
-    public function show($id)
+    public function show(int $id)
     {
         try {
             $pedia = VespaPedia::find($id);
@@ -171,7 +171,7 @@ class VespaPediaController extends Controller
     /**
      * Mengupdate konten Vespa Pedia
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id)
     {
         try {
             $pedia = VespaPedia::findOrFail($id);
@@ -230,7 +230,7 @@ class VespaPediaController extends Controller
     /**
      * Menghapus konten Vespa Pedia beserta gambarnya
      */
-    public function destroy($id)
+    public function destroy(int $id)
     {
         try {
             $pedia = VespaPedia::find($id);

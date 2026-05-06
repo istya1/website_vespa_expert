@@ -19,7 +19,9 @@ use Kreait\Firebase\Messaging\Notification as FirebaseNotification;
 use App\Http\Controllers\BengkelController;
 use App\Http\Controllers\LayananController;
 use App\Http\Controllers\KategoriController;
-
+use App\Http\Controllers\KendaraanController;
+use App\Http\Controllers\ServisController;
+use Illuminate\Http\Request;
 
 Route::get('/login', function () {
     return response()->json([
@@ -118,7 +120,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route::get('vespa-care/template', [VespaCareController::class, 'getTemplates']);
     // Route::get('vespa-care/template/{id}', [VespaCareController::class, 'getTemplate']);
 
-    Route::get('/kategori', [KategoriController::class, 'index']);
 
     // USER REMINDER
     Route::get('user-reminders', [UserServiceReminderController::class, 'index']);
@@ -152,6 +153,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // Route::get('/motor/cek-notif/{userId}', [ServiceController::class, 'cekDanKirimNotif']);
     });
 
+    Route::apiResource('kategori', KategoriController::class);
+
     Route::middleware(['auth:sanctum'])->group(function () {
 
         Route::middleware(['superadmin'])->group(function () {
@@ -162,47 +165,97 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 
+    Route::middleware('auth:sanctum')->group(function () {
+
+        // ── Kendaraan ──────────────────────────────────────
+        Route::get('/kendaraan',          [KendaraanController::class, 'index']);
+        Route::post('/kendaraan',         [KendaraanController::class, 'store']);
+        Route::delete('/kendaraan/{id}',  [KendaraanController::class, 'destroy']);
+
+        // ── Servis & Ganti Oli ─────────────────────────────
+        Route::post('/servis',                          [ServisController::class, 'store']);
+        Route::get('/servis/{kendaraan_id}',            [ServisController::class, 'show']);
+        Route::get('/servis/{kendaraan_id}/riwayat',    [ServisController::class, 'riwayat']);
+        Route::patch('/servis/{id}/konfirmasi',         [ServisController::class, 'konfirmasiGantiOli']);
+
+        // ── Admin only ─────────────────────────────────────
+        Route::middleware('role:admin')->group(function () {
+            Route::get('/admin/servis', [ServisController::class, 'adminIndex']);
+        });
+    });
 
     // TESTING FCM
-    Route::get('/test-fcm-topic', function () {
-        try {
-            $credentialsPath = config('firebase.credentials');
-            $fullPath = base_path($credentialsPath);
+    // Route::get('/test-fcm-topic', function () {
+    //     try {
+    //         $credentialsPath = config('firebase.credentials');
+    //         $fullPath = base_path($credentialsPath);
 
-            $factory = (new Factory)->withServiceAccount($fullPath);
-            $messaging = $factory->createMessaging();
+    //         $factory = (new Factory)->withServiceAccount($fullPath);
+    //         $messaging = $factory->createMessaging();
 
-            $notification = FirebaseNotification::create()
-                ->withTitle('Test FCM Sukses!')
-                ->withBody('Laravel sudah terhubung ke Firebase Cloud Messaging.');
+    //         $notification = FirebaseNotification::create()
+    //             ->withTitle('Test FCM Sukses!')
+    //             ->withBody('Laravel sudah terhubung ke Firebase Cloud Messaging.');
 
-            $message = CloudMessage::new()->withNotification($notification);
+    //         $message = CloudMessage::new()->withNotification($notification);
 
-            $messaging->sendMulticast($message, ['test-vespa']);
+    //         $messaging->sendMulticast($message, ['test-vespa']);
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Notifikasi berhasil dikirim ke topic "test-vespa"!'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => $e->getMessage(),
-                'path_tried' => $fullPath ?? 'null',
-                'line' => $e->getLine()
-            ], 500);
-        }
-    });
+    //         return response()->json([
+    //             'status' => 'success',
+    //             'message' => 'Notifikasi berhasil dikirim ke topic "test-vespa"!'
+    //         ]);
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => $e->getMessage(),
+    //             'path_tried' => $fullPath ?? 'null',
+    //             'line' => $e->getLine()
+    //         ], 500);
+    //     }
+    // });
 
-    Route::get('/debug-firebase', function () {
-        $configValue = config('firebase.credentials');
-        $fullPath = base_path($configValue ?? 'TIDAK ADA');
+    // Route::get('/debug-firebase', function () {
+    //     $configValue = config('firebase.credentials');
+    //     $fullPath = base_path($configValue ?? 'TIDAK ADA');
 
-        return response()->json([
-            'firebase_credentials_from_config' => $configValue,
-            'full_path_calculated' => $fullPath,
-            'file_exists' => file_exists($fullPath),
-            'base_path' => base_path(),
-        ]);
-    });
+    //     return response()->json([
+    //         'firebase_credentials_from_config' => $configValue,
+    //         'full_path_calculated' => $fullPath,
+    //         'file_exists' => file_exists($fullPath),
+    //         'base_path' => base_path(),
+    //     ]);
+    // });
+
+    // Tambahkan di dalam Route::middleware('auth:sanctum')
+// ── Notifikasi ─────────────────────────────────────
+Route::get('/notifikasi', function (Request $request) {
+    $notifs = DB::table('notifikasi_user')
+        ->where('user_id', $request->user()->id_user)
+        ->orderBy('created_at', 'desc')
+        ->limit(50)
+        ->get();
+
+    return response()->json([
+        'berhasil' => true,
+        'data'     => $notifs,
+    ]);
+});
+
+Route::patch('/notifikasi/{id}/baca', function (Request $request, $id) {
+    DB::table('notifikasi_user')
+        ->where('id', $id)
+        ->where('user_id', $request->user()->id_user)
+        ->update(['sudah_dibaca' => 1]);
+
+    return response()->json(['berhasil' => true]);
+});
+
+Route::patch('/notifikasi/baca-semua', function (Request $request) {
+    DB::table('notifikasi_user')
+        ->where('user_id', $request->user()->id_user)
+        ->update(['sudah_dibaca' => 1]);
+
+    return response()->json(['berhasil' => true]);
+});
 });

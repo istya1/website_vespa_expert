@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Gejala;
 use Illuminate\Http\Request;
+use App\Models\Kategori;
 
 class GejalaController extends Controller
 {
@@ -11,13 +12,14 @@ class GejalaController extends Controller
     {
         $jenisMotor = urldecode($request->query('jenis_motor'));
 
-        $query = Gejala::query();
+        $query = Gejala::with('kategori'); // ✅ ambil relasi kategori
 
         if ($jenisMotor) {
             $query->where('jenis_motor', $jenisMotor);
         }
 
         $gejala = $query->orderBy('kode_gejala')->get();
+
         return response()->json($gejala);
     }
 
@@ -26,14 +28,13 @@ class GejalaController extends Controller
         $request->validate([
             'nama_gejala' => 'required|max:100',
             'jenis_motor' => 'required|in:Sprint 150,Sprint S 150,LX 125,Primavera 150,Primavera S 150',
-            'kategori' => 'required|max:50',
-            'deskripsi' => 'nullable|max:255',
-            'bobot' => 'required|integer|in:1,2,3', 
+            'kategori_id' => 'required|exists:kategori,id', // ✅ pakai relasi
+            'bobot' => 'nullable|integer|in:1,2,3',
         ]);
 
         $jenisMotor = $request->jenis_motor;
 
-        // Prefix untuk Gejala = G + model
+        // Prefix kode
         $codePrefix = match ($jenisMotor) {
             'Sprint 150'        => 'GS150',
             'Sprint S 150'      => 'GSS150',
@@ -43,47 +44,45 @@ class GejalaController extends Controller
             default => throw new \Exception('Invalid jenis_motor'),
         };
 
-
-        // Cari kode terakhir dengan prefix ini, urutkan desc
+        // Ambil kode terakhir
         $lastGejala = Gejala::where('kode_gejala', 'LIKE', $codePrefix . '-%')
             ->orderBy('kode_gejala', 'desc')
             ->first();
 
         if ($lastGejala) {
-            // Ambil angka setelah '-', tambah 1
             $lastNumber = (int) substr($lastGejala->kode_gejala, strpos($lastGejala->kode_gejala, '-') + 1);
             $newNumber = $lastNumber + 1;
         } else {
             $newNumber = 1;
         }
 
-        // Format: GS150-01, GS150-02, dst. (nol di depan untuk 2 digit)
         $newCode = $codePrefix . '-' . str_pad($newNumber, 2, '0', STR_PAD_LEFT);
 
-        // Cek unique (aman, jarang conflict)
         while (Gejala::where('kode_gejala', $newCode)->exists()) {
             $newNumber++;
             $newCode = $codePrefix . '-' . str_pad($newNumber, 2, '0', STR_PAD_LEFT);
         }
+        $kategori = Kategori::find($request->kategori_id);
+
+        $bobot = $request->bobot ?? $kategori->bobot_default;
 
         $gejala = Gejala::create([
             'kode_gejala' => $newCode,
             'nama_gejala' => $request->nama_gejala,
             'jenis_motor' => $jenisMotor,
-            'kategori' => $request->kategori,
-            'deskripsi' => $request->deskripsi,
-            'bobot' => $request->bobot,
+            'kategori_id' => $request->kategori_id, // ✅ FIX
+            'bobot' => $bobot,
         ]);
 
         return response()->json([
             'message' => 'Gejala berhasil ditambahkan',
-            'data' => $gejala
+            'data' => $gejala->load('kategori') // biar langsung ada nama kategori
         ], 201);
     }
 
-    public function show($kode)
+    public function show(string $kode)
     {
-        $gejala = Gejala::find($kode);
+        $gejala = Gejala::with('kategori')->find($kode);
 
         if (!$gejala) {
             return response()->json(['message' => 'Gejala tidak ditemukan'], 404);
@@ -92,35 +91,41 @@ class GejalaController extends Controller
         return response()->json($gejala);
     }
 
-    public function update(Request $request, $kode)
-    {
-        $gejala = Gejala::find($kode);
+   public function update(Request $request, string $kode)
+{
+    $gejala = Gejala::find($kode);
 
-        if (!$gejala) {
-            return response()->json(['message' => 'Gejala tidak ditemukan'], 404);
-        }
-
-        $request->validate([
-            'nama_gejala' => 'max:100',
-            'jenis_motor' => 'in:Sprint 150,Sprint S 150,LX 125,Primavera 150,Primavera S 150',
-            'kategori' => 'max:50',
-            'deskripsi' => 'nullable|max:255',
-             'bobot' => 'integer|in:1,2,3',
-        ]);
-
-        $gejala->update(
-            $request->only(['nama_gejala', 'jenis_motor', 'kategori', 'deskripsi', 'bobot']),
-            $request->only(['nama_gejala', 'jenis_motor', 'kategori', 'bobot']),
-        );
-
-
-        return response()->json([
-            'message' => 'Gejala berhasil diupdate',
-            'data' => $gejala
-        ]);
+    if (!$gejala) {
+        return response()->json(['message' => 'Gejala tidak ditemukan'], 404);
     }
 
-    public function destroy($kode)
+    $request->validate([
+        'nama_gejala' => 'max:100',
+        'jenis_motor' => 'in:Sprint 150,Sprint S 150,LX 125,Primavera 150,Primavera S 150',
+        'kategori_id' => 'exists:kategori,id',
+        'bobot' => 'nullable|integer|in:1,2,3',
+    ]);
+
+    // ambil kategori jika diubah
+    $kategoriId = $request->kategori_id ?? $gejala->kategori_id;
+    $kategori = Kategori::find($kategoriId);
+
+    // logic bobot dinamis
+    $bobot = $request->bobot ?? $kategori->bobot_default;
+
+    $gejala->update([
+        'nama_gejala' => $request->nama_gejala ?? $gejala->nama_gejala,
+        'jenis_motor' => $request->jenis_motor ?? $gejala->jenis_motor,
+        'kategori_id' => $kategoriId,
+        'bobot' => $bobot,
+    ]);
+
+    return response()->json([
+        'message' => 'Gejala berhasil diupdate',
+        'data' => $gejala->load('kategori')
+    ]);
+}
+    public function destroy(string $kode)
     {
         $gejala = Gejala::find($kode);
 
@@ -129,6 +134,9 @@ class GejalaController extends Controller
         }
 
         $gejala->delete();
-        return response()->json(['message' => 'Gejala berhasil dihapus']);
+
+        return response()->json([
+            'message' => 'Gejala berhasil dihapus'
+        ]);
     }
 }

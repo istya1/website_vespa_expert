@@ -56,7 +56,7 @@ class AturanController extends Controller
     }
 
     // 🔹 UPDATE aturan
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id)
     {
         // Ambil data aturan berdasarkan id
         $aturan = Aturan::findOrFail($id);
@@ -95,7 +95,7 @@ class AturanController extends Controller
     }
 
     // 🔹 DELETE aturan
-    public function destroy($id)
+    public function destroy(int $id)
     {
         DB::transaction(function () use ($id) {
 

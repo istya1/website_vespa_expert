@@ -8,7 +8,7 @@ class Kategori extends Model
 {
     protected $table = 'kategori';
 
-    protected $fillable = ['nama', 'bobot'];
+    protected $fillable = ['nama_kategori', 'bobot_default'];
 
     public function gejala()
     {

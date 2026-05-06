@@ -17,7 +17,7 @@ class LayananController extends Controller
     }
 
     // 🔹 GET detail layanan berdasarkan ID
-    public function show($id)
+    public function show(int $id)
     {
         // Cari data layanan berdasarkan ID
         $data = Layanan::find($id);
@@ -46,7 +46,7 @@ class LayananController extends Controller
     }
 
     // 🔹 UPDATE data layanan
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id)
     {
         // Cari data layanan berdasarkan ID
         $data = Layanan::find($id);
@@ -67,7 +67,7 @@ class LayananController extends Controller
     }
 
     // 🔹 DELETE data layanan
-    public function destroy($id)
+    public function destroy(int $id)
     {
         // Cari data layanan
         $data = Layanan::find($id);

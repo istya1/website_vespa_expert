@@ -13,7 +13,6 @@ use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
 
-
 class DiagnosaController extends Controller
 {
     public function index(Request $request)
@@ -258,7 +257,7 @@ class DiagnosaController extends Controller
     }
 
 
-    public function show($id)
+    public function show(int $id)
     {
         $diagnosa = Diagnosa::with(['kerusakan', 'user', 'hasilDiagnosis.kerusakan'])
             ->find($id);
@@ -281,7 +280,7 @@ class DiagnosaController extends Controller
         ]);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id)
     {
         $diagnosa = Diagnosa::findOrFail($id);
 
@@ -293,11 +292,9 @@ class DiagnosaController extends Controller
         DB::beginTransaction();
 
         try {
-            $diagnosa->update([
-                'kode_kerusakan' => $request->kode_kerusakan,
-                'persentase' => $request->persentase,
-                'tingkat_kepastian' => $request->tingkat_kepastian ?? $diagnosa->tingkat_kepastian,
-            ]);
+            $diagnosa->update(
+                $request->only(['kode_kerusakan', 'persentase', 'tingkat_kepastian'])
+            );
 
             DB::commit();
 
@@ -316,7 +313,7 @@ class DiagnosaController extends Controller
         }
     }
 
-    public function destroy($id)
+    public function destroy(int $id)
     {
         DB::beginTransaction();
 
@@ -368,56 +365,56 @@ class DiagnosaController extends Controller
     }
 
     public function indexAdmin()
-{
-    $data = Diagnosa::with(['user', 'gejala', 'hasilDiagnosis.kerusakan'])
-        ->orderByDesc('id_diagnosa')
-        ->get();
+    {
+        $data = Diagnosa::with(['user', 'gejala', 'hasilDiagnosis.kerusakan'])
+            ->orderByDesc('id_diagnosa')
+            ->get();
 
-    // Debug
-    Log::info('ADMIN DIAGNOSA TOTAL: ' . $data->count());
+        // Debug
+        Log::info('ADMIN DIAGNOSA TOTAL: ' . $data->count());
 
-    foreach ($data as $diagnosa) {
-        Log::info("Diagnosa ID {$diagnosa->id_diagnosa}", [
-            'hasilDiagnosis_count' => $diagnosa->hasilDiagnosis->count(),
-            'first_hasil' => $diagnosa->hasilDiagnosis->first() ? $diagnosa->hasilDiagnosis->first()->toArray() : 'kosong',
-            'first_kerusakan_nama' => $diagnosa->hasilDiagnosis->first()?->kerusakan?->nama_kerusakan ?? 'tidak ada'
-        ]);
+        foreach ($data as $diagnosa) {
+            Log::info("Diagnosa ID {$diagnosa->id_diagnosa}", [
+                'hasilDiagnosis_count' => $diagnosa->hasilDiagnosis->count(),
+                'first_hasil' => $diagnosa->hasilDiagnosis->first() ? $diagnosa->hasilDiagnosis->first()->toArray() : 'kosong',
+                'first_kerusakan_nama' => $diagnosa->hasilDiagnosis->first()?->kerusakan?->nama_kerusakan ?? 'tidak ada'
+            ]);
+        }
+
+        return response()->json(['success' => true, 'data' => $data]);
     }
 
-    return response()->json(['success' => true, 'data' => $data]);
+    private function mapPrioritas(?string $prioritas, int $index = 0): int
+    {
+        if ($prioritas === 'Tinggi') return 3;
+        if ($prioritas === 'Sedang') return 2;
+        if ($prioritas === 'Rendah') return 1;
+
+        return $index + 1;
+    }
+
+    public function statistik()
+    {
+        // 🔹 Kerusakan terbanyak
+        $kerusakan = DB::table('diagnosa')
+            ->select('kode_kerusakan')
+            ->selectRaw('count(*) as total')
+            ->groupBy('kode_kerusakan')
+            ->orderByDesc('total')
+            ->get();
+
+        // 🔹 Gejala terbanyak
+        $gejala = DB::table('diagnosa_gejala')
+            ->select('kode_gejala')
+            ->selectRaw('count(*) as total')
+            ->groupBy('kode_gejala')
+            ->orderByDesc('total')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'kerusakan' => $kerusakan,
+            'gejala' => $gejala
+        ]);
+    }
 }
-private function mapPrioritas($prioritas, $index = 0)
-{
-    if ($prioritas === 'Tinggi') return 3;
-    if ($prioritas === 'Sedang') return 2;
-    if ($prioritas === 'Rendah') return 1;
-
-    // fallback kalau null
-    return $index + 1;
-}
-
- public function statistik()
-{
-    // 🔹 Kerusakan terbanyak
-    $kerusakan = DB::table('diagnosa')
-        ->select('kode_kerusakan', DB::raw('count(*) as total'))
-        ->groupBy('kode_kerusakan')
-        ->orderByDesc('total')
-        ->get();
-
-    // 🔹 Gejala terbanyak
-    $gejala = DB::table('diagnosa_gejala')
-        ->select('kode_gejala', DB::raw('count(*) as total'))
-        ->groupBy('kode_gejala')
-        ->orderByDesc('total')
-        ->get();
-
-    return response()->json([
-        'success' => true,
-        'kerusakan' => $kerusakan,
-        'gejala' => $gejala
-    ]);
-}
-
-}
-
