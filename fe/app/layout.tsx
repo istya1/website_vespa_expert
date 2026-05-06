@@ -4,7 +4,7 @@ import './globals.css';
 import ToastProvider from '@/components/toast-provider';
 
 export const metadata: Metadata = {
-  title: 'Vespa Expert Dashboard',
+  title: 'Vespa Matic Expert',
   description: 'Sistem Pakar Diagnosa Kerusakan Vespa',
     icons: {
     icon: '/asset/Logo.png', // favicon

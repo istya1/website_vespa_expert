@@ -19,8 +19,16 @@ export interface Gejala {
   kode_gejala: string;
   nama_gejala: string;
   jenis_motor: string;
-  kategori: string;
+
+  kategori_id: number; // ✅ kirim ke backend
   bobot: number;
+
+  // ✅ relasi dari backend (optional tapi penting)
+  kategori?: {
+    id: number;
+    nama_kategori: string;
+  };
+  
 }
 
 export interface GejalaFormData {
@@ -34,6 +42,7 @@ export interface GejalaFormData {
 export interface Kerusakan {
   kode_kerusakan: string;
   nama_kerusakan: string;
+  kategori: string;
   keterangan: string;
   solusi: string;
   jenis_motor: 'Primavera 150' | 'Primavera S 150' | 'LX 125' | 'Sprint 150' | 'Sprint S 150';

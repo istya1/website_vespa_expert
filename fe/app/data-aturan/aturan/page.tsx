@@ -154,7 +154,10 @@ export default function AturanPage() {
 
       {/* Table */}
       {loading ? (
-        <p>Memuat data...</p>
+        <div className="flex flex-col justify-center items-center h-64 gap-3">
+          <img src="/asset/load.png" alt="Loading" className="w-44 h-28 animate-pulse" />
+          <p className="text-sm text-gray-500">Memuat data...</p>
+        </div>
       ) : (
         <div className="bg-white rounded shadow overflow-x-auto">
           <table className="min-w-full text-sm">

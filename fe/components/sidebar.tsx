@@ -43,6 +43,7 @@ const MENU_ITEMS: MenuItem[] = [
     icon: FileText,
     submenu: [
       { name: 'Data Gejala', path: '/data-aturan/gejala', icon: AlertTriangle },
+      { name: 'Data Kategori', path: '/data-aturan/kategori', icon: AlertTriangle },
       { name: 'Data Kerusakan', path: '/data-aturan/kerusakan', icon: XCircle },
       { name: 'Aturan', path: '/data-aturan/aturan', icon: Settings },
     ],
@@ -232,7 +233,7 @@ export default function Sidebar() {
         <div className="flex items-center gap-3 px-6 py-6 border-b">
           <img src="/asset/logo.png" className="w-12 h-12 object-contain" />
           <div>
-            <h1 className="text-xl font-bold">Vespa</h1>
+            <h1 className="text-xl font-bold">Vespa Matic</h1>
             <p className="text-sm text-gray-500">Expert</p>
           </div>
         </div>

@@ -234,9 +234,9 @@ export default function ProfilePage() {
     return (
       <DashboardLayout title="Profil Saya">
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Memuat data profil...</p>
+          <div className="flex flex-col justify-center items-center h-64 gap-3">
+            <img src="/asset/load.png" alt="Loading" className="w-44 h-28 animate-pulse" />
+            <p className="text-sm text-gray-500">Memuat data...</p>
           </div>
         </div>
       </DashboardLayout>

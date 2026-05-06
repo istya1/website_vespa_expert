@@ -74,7 +74,7 @@ export default function LoginPage() {
 
         {/* Judul Aplikasi */}
         <h1 className="text-2xl font-bold text-center text-gray-800 mb-2">
-          Vespa Expert
+          Vespa Matic Expert
         </h1>
         <p className="text-center text-gray-600 mb-8">
           Silahkan login untuk melanjutkan
@@ -135,7 +135,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="text-center text-sm text-gray-500 mt-8">
-          © 2026 Vespa Expert. All rights reserved.
+          © 2026 Vespa Matic Expert. All rights reserved.
         </p>
       </div>
     </div>

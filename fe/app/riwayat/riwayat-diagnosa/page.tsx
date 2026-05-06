@@ -180,12 +180,9 @@ export default function DiagnosaPage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <img
-            src="/load.png"
-            alt="Loading..."
-            className="w-24 h-24"
-          />
+        <div className="flex flex-col justify-center items-center h-64 gap-3">
+          <img src="/asset/load.png" alt="Loading" className="w-44 h-28 animate-pulse" />
+          <p className="text-sm text-gray-500">Memuat data...</p>
         </div>
       ) : (
         <>

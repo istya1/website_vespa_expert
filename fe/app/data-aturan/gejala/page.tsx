@@ -4,10 +4,18 @@ import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import DashboardLayout from '@/components/dashboard-layout';
 import GejalaService from '@/services/gejala-service';
-import { Gejala } from '@/types';
+import { Gejala, JenisMotor } from '@/types';
 import { JENIS_MOTOR } from '@/utils/constants';
 import toast from 'react-hot-toast';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import KategoriService, { Kategori } from '@/services/kategori-service';
+
+interface FormData {
+  nama_gejala: string;
+  jenis_motor: JenisMotor;
+  kategori_id: number;
+  bobot: number;
+}
 
 export default function GejalaPage() {
   const [gejalaList, setGejalaList] = useState<Gejala[]>([]);
@@ -15,29 +23,33 @@ export default function GejalaPage() {
   const [showModal, setShowModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedGejala, setSelectedGejala] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'Primavera 150' | 'Primavera S 150' | 'LX 125' | 'Sprint 150' | 'Sprint S 150'>('Primavera 150');
-
+  const [activeTab, setActiveTab] = useState<JenisMotor>('Primavera 150');
+  const [kategoriList, setKategoriList] = useState<Kategori[]>([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingKode, setDeletingKode] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 5;
 
-  const [formData, setFormData] = useState<{
-    nama_gejala: string;
-    jenis_motor: 'Primavera 150' | 'Primavera S 150' | 'LX 125' | 'Sprint 150' | 'Sprint S 150';
-    kategori: string;
-    // deskripsi: string;
-    bobot: number;
-
-  }>({
+  const [formData, setFormData] = useState<FormData>({
     nama_gejala: '',
     jenis_motor: 'Primavera 150',
-    kategori: '',
+    kategori_id: 0,
     bobot: 2,
-    // deskripsi: '',
   });
 
   useEffect(() => {
     fetchGejala();
+    fetchKategori();
   }, []);
+
+  const fetchKategori = async () => {
+    try {
+      const data = await KategoriService.getAll();
+      setKategoriList(data);
+    } catch {
+      toast.error('Gagal memuat kategori');
+    }
+  };
 
   const fetchGejala = async () => {
     try {
@@ -57,20 +69,18 @@ export default function GejalaPage() {
       setEditMode(true);
       setSelectedGejala(gejala.kode_gejala);
       setFormData({
-        nama_gejala: gejala.nama_gejala,
-        jenis_motor: gejala.jenis_motor as typeof formData.jenis_motor,
-        kategori: gejala.kategori,
-        bobot: gejala.bobot,
-        // deskripsi: gejala.deskripsi || '',
+        nama_gejala: gejala.nama_gejala ?? '',
+        jenis_motor: (gejala.jenis_motor as JenisMotor) ?? 'Primavera 150',
+        kategori_id: gejala.kategori_id ?? 0,
+        bobot: Number(gejala.bobot) || 2,
       });
     } else {
       setEditMode(false);
       setFormData({
         nama_gejala: '',
-        jenis_motor: activeTab, // akan otomatis sesuai tab aktif
-        kategori: '',
+        jenis_motor: activeTab,
+        kategori_id: 0,
         bobot: 2,
-        // deskripsi: '',
       });
     }
     setShowModal(true);
@@ -86,13 +96,19 @@ export default function GejalaPage() {
     const loadingToast = toast.loading(editMode ? 'Mengupdate gejala...' : 'Menambahkan gejala...');
 
     try {
+      const bobot = Number(formData.bobot);
+      if (![1, 2, 3].includes(bobot)) {
+        toast.error('Bobot tidak valid. Pilih Ringan, Sedang, atau Berat.', { id: loadingToast });
+        return;
+      }
+
+      const payload = { ...formData, bobot };
+
       if (editMode) {
-        // Saat edit, kita kirim semua field kecuali kode_gejala (tidak diubah)
-        await GejalaService.update(selectedGejala, formData);
+        await GejalaService.update(selectedGejala, payload);
         toast.success('Gejala berhasil diupdate', { id: loadingToast });
       } else {
-        // Saat create, backend yang generate kode_gejala
-        await GejalaService.create(formData);
+        await GejalaService.create(payload);
         toast.success('Gejala berhasil ditambahkan', { id: loadingToast });
       }
       handleCloseModal();
@@ -102,11 +118,6 @@ export default function GejalaPage() {
     }
   };
 
-  // Di dalam component, tambahkan state:
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deletingKode, setDeletingKode] = useState<string>('');
-
-  // Ubah fungsi handleDelete jadi seperti ini:
   const handleDelete = (kode: string) => {
     setDeletingKode(kode);
     setShowDeleteModal(true);
@@ -114,7 +125,6 @@ export default function GejalaPage() {
 
   const confirmDelete = async () => {
     if (!deletingKode) return;
-
     const loadingToast = toast.loading('Menghapus gejala...');
     try {
       await GejalaService.delete(deletingKode);
@@ -133,7 +143,11 @@ export default function GejalaPage() {
     setDeletingKode('');
   };
 
-  // Filter data berdasarkan tab aktif
+  const handleTabChange = (jenis: JenisMotor) => {
+    setActiveTab(jenis);
+    setCurrentPage(1);
+  };
+
   const filteredGejala = gejalaList.filter(g => g.jenis_motor === activeTab);
   const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
@@ -142,7 +156,6 @@ export default function GejalaPage() {
 
   return (
     <DashboardLayout title="Data Gejala">
-      {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Daftar Gejala</h2>
         <button
@@ -157,21 +170,21 @@ export default function GejalaPage() {
       {/* Tabs */}
       <div className="border-b border-gray-200 mb-6">
         <nav className="-mb-px flex space-x-8">
-          {JENIS_MOTOR.map((jenis) => (
+          {(JENIS_MOTOR as readonly JenisMotor[]).map((jenis) => (
             <button
               key={jenis}
-              onClick={() => setActiveTab(jenis)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === jenis
-                ? 'border-primary-600 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+              onClick={() => handleTabChange(jenis)}
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === jenis
+                  ? 'border-primary-600 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
             >
               {jenis}
             </button>
           ))}
         </nav>
       </div>
-
 
       {/* Table */}
       {loading ? (
@@ -184,21 +197,11 @@ export default function GejalaPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Kode
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Nama Gejala
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Kategori
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                  Bobot
-                </th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                  Aksi
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kode</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Gejala</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategori</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Bobot</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Aksi</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -211,49 +214,26 @@ export default function GejalaPage() {
               ) : (
                 currentGejala.map((gejala) => (
                   <tr key={gejala.kode_gejala} className="hover:bg-gray-50">
-                    {/* KODE */}
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {gejala.kode_gejala}
-                    </td>
-
-                    {/* NAMA */}
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {gejala.nama_gejala}
-                    </td>
-
-                    {/* KATEGORI */}
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{gejala.kode_gejala}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{gejala.nama_gejala}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">
-                      {gejala.kategori}
+                      {gejala.kategori?.nama_kategori || '—'}
                     </td>
-
-                    {/* BOBOT */}
                     <td className="px-6 py-4 text-sm text-center">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium
-              ${gejala.bobot === 3 ? 'bg-red-100 text-red-700' : ''}
-              ${gejala.bobot === 2 ? 'bg-yellow-100 text-yellow-700' : ''}
-              ${gejala.bobot === 1 ? 'bg-green-100 text-green-700' : ''}
-            `}
-                      >
-                        {gejala.bobot === 3 && 'Berat'}
-                        {gejala.bobot === 2 && 'Sedang'}
-                        {gejala.bobot === 1 && 'Ringan'}
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        gejala.bobot === 3 ? 'bg-red-100 text-red-700' :
+                        gejala.bobot === 2 ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-green-100 text-green-700'
+                      }`}>
+                        {gejala.bobot === 3 ? 'Berat' : gejala.bobot === 2 ? 'Sedang' : 'Ringan'}
                       </span>
                     </td>
-
-                    {/* AKSI */}
                     <td className="px-6 py-4 text-sm text-center">
                       <div className="flex justify-center gap-2">
-                        <button
-                          onClick={() => handleOpenModal(gejala)}
-                          className="text-primary-600 hover:text-primary-800"
-                        >
+                        <button onClick={() => handleOpenModal(gejala)} className="text-primary-600 hover:text-primary-800">
                           <Pencil size={18} />
                         </button>
-                        <button
-                          onClick={() => handleDelete(gejala.kode_gejala)}
-                          className="text-red-600 hover:text-red-800"
-                        >
+                        <button onClick={() => handleDelete(gejala.kode_gejala)} className="text-red-600 hover:text-red-800">
                           <Trash2 size={18} />
                         </button>
                       </div>
@@ -262,10 +242,10 @@ export default function GejalaPage() {
                 ))
               )}
             </tbody>
-
           </table>
         </div>
       )}
+
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-2 mt-4">
@@ -276,20 +256,17 @@ export default function GejalaPage() {
           >
             Prev
           </button>
-
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
             <button
               key={page}
               onClick={() => setCurrentPage(page)}
-              className={`px-3 py-1 rounded ${page === currentPage
-                ? 'bg-primary-600 text-white'
-                : 'bg-gray-200 hover:bg-gray-300'
-                }`}
+              className={`px-3 py-1 rounded ${
+                page === currentPage ? 'bg-primary-600 text-white' : 'bg-gray-200 hover:bg-gray-300'
+              }`}
             >
               {page}
             </button>
           ))}
-
           <button
             onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages}
@@ -298,179 +275,170 @@ export default function GejalaPage() {
             Next
           </button>
         </div>
+      )}
 
-  )
-}
+      {/* Modal Tambah/Edit */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full max-h-screen overflow-y-auto">
+            <h3 className="text-xl font-bold mb-4">
+              {editMode ? 'Edit Gejala' : 'Tambah Gejala Baru'}
+            </h3>
+            <form onSubmit={handleSubmit} className="space-y-4">
 
-{
-  showModal && (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-8 max-w-md w-full max-h-screen overflow-y-auto">
-        <h3 className="text-xl font-bold mb-4">
-          {editMode ? 'Edit Gejala' : 'Tambah Gejala Baru'}
-        </h3>
+              {/* Kode Gejala (edit mode only) */}
+              {editMode && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Kode Gejala</label>
+                  <input
+                    type="text"
+                    value={selectedGejala}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Kode otomatis saat dibuat, tidak dapat diubah</p>
+                </div>
+              )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* HAPUS INPUT KODE GEJALA KETIKA TAMBAH BARU */}
-          {editMode && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Kode Gejala
-              </label>
-              <input
-                type="text"
-                value={selectedGejala}
-                disabled
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
-              />
-              <p className="text-xs text-gray-500 mt-1">Kode otomatis saat dibuat, tidak dapat diubah</p>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nama Gejala <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.nama_gejala}
-              onChange={(e) => setFormData({ ...formData, nama_gejala: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-              placeholder="Masukkan nama gejala"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Jenis Motor <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.jenis_motor}
-              onChange={(e) => setFormData({
-                ...formData,
-                jenis_motor: e.target.value as 'Primavera 150' | 'Primavera S 150' | 'LX 125' | 'Sprint 150' | 'Sprint S 150'
-              })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-              required
-              disabled={editMode} // Opsional: tidak boleh ganti jenis motor saat edit
-            >
-              {JENIS_MOTOR.map((jenis) => (
-                <option key={jenis} value={jenis}>{jenis}</option>
-              ))}
-            </select>
-            {editMode && (
-              <p className="text-xs text-gray-500 mt-1">Jenis motor tidak dapat diubah setelah dibuat</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Bobot Gejala <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.bobot}
-              onChange={(e) =>
-                setFormData({ ...formData, bobot: Number(e.target.value) })
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              required
-            >
-              <option value={3}>Berat (Risiko tinggi)</option>
-              <option value={2}>Sedang (Gangguan performa)</option>
-              <option value={1}>Ringan (Indikasi awal)</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Kategori <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.kategori}
-              onChange={(e) => setFormData({ ...formData, kategori: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-              placeholder="Contoh: Mesin, Kelistrikan, Rem"
-              required
-            />
-          </div>
-
-
-
-          {/* <div>
+              {/* Nama Gejala */}
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Deskripsi
+                  Nama Gejala <span className="text-red-500">*</span>
                 </label>
-                <textarea
-                  value={formData.deskripsi}
-                  onChange={(e) => setFormData({ ...formData, deskripsi: e.target.value })}
+                <input
+                  type="text"
+                  value={formData.nama_gejala}
+                  onChange={(e) => setFormData({ ...formData, nama_gejala: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                  rows={3}
-                  placeholder="Deskripsi gejala (opsional)"
+                  placeholder="Masukkan nama gejala"
+                  required
                 />
-              </div> */}
+              </div>
 
-          <div className="flex gap-3">
-            <button
-              type="submit"
-              className="flex-1 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors"
-            >
-              {editMode ? 'Update' : 'Simpan'}
-            </button>
-            <button
-              type="button"
-              onClick={handleCloseModal}
-              className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition-colors"
-            >
-              Batal
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
-}
+              {/* Jenis Motor */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Jenis Motor <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.jenis_motor}
+                  onChange={(e) => setFormData({ ...formData, jenis_motor: e.target.value as JenisMotor })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                  required
+                  disabled={editMode}
+                >
+                  {(JENIS_MOTOR as readonly JenisMotor[]).map((jenis) => (
+                    <option key={jenis} value={jenis}>{jenis}</option>
+                  ))}
+                </select>
+                {editMode && (
+                  <p className="text-xs text-gray-500 mt-1">Jenis motor tidak dapat diubah setelah dibuat</p>
+                )}
+              </div>
 
-{/* Delete Confirmation Modal */ }
-{
-  showDeleteModal && (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full mx-4 p-6 animate-in fade-in zoom-in duration-200">
-        <div className="flex flex-col items-center text-center">
-          {/* Icon Warning Besar */}
-          <div className="mb-4 rounded-full bg-red-100 p-3">
-            <ExclamationTriangleIcon className="h-12 w-12 text-red-600" />
-            {/* Kalau pakai lucide: <AlertTriangle className="h-12 w-12 text-red-600" /> */}
-          </div>
+              {/* Kategori — dipindah ke atas Bobot */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Kategori <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.kategori_id}
+                  onChange={(e) => {
+                    const selectedId = Number(e.target.value);
+                    const selectedKategori = kategoriList.find(k => k.id === selectedId);
+                    setFormData({
+                      ...formData,
+                      kategori_id: selectedId,
+                      // ✅ auto-fill bobot dari bobot_default kategori
+                      bobot: selectedKategori?.bobot_default ?? formData.bobot,
+                    });
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  required
+                >
+                  <option value="">-- Pilih Kategori --</option>
+                  {kategoriList.map((k) => (
+                    <option key={k.id} value={k.id}>
+                      {k.nama_kategori} (Bobot default: {k.bobot_default === 3 ? 'Berat' : k.bobot_default === 2 ? 'Sedang' : 'Ringan'})
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Hapus Gejala Ini?
-          </h3>
-          <p className="text-sm text-gray-600 mb-6">
-            Apakah Anda yakin ingin menghapus gejala <span className="font-medium text-gray-900">{deletingKode}</span>?
-            Tindakan ini tidak dapat dibatalkan.
-          </p>
+              {/* Bobot — ter-isi otomatis, bisa diubah manual */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Bobot Gejala <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.bobot}
+                  onChange={(e) => setFormData({ ...formData, bobot: Number(e.target.value) })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  required
+                >
+                  <option value="">-- Pilih Bobot --</option>
+                  <option value={3}>Berat (Risiko tinggi)</option>
+                  <option value={2}>Sedang (Gangguan performa)</option>
+                  <option value={1}>Ringan (Indikasi awal)</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Terisi otomatis dari kategori, bisa diubah manual jika diperlukan
+                </p>
+              </div>
 
-          <div className="flex gap-3 w-full">
-            <button
-              onClick={cancelDelete}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              onClick={confirmDelete}
-              className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Ya, Hapus
-            </button>
+              {/* Tombol Aksi */}
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  className="flex-1 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors"
+                >
+                  {editMode ? 'Update' : 'Simpan'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+                >
+                  Batal
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      </div>
-    </div>
-  )
-}
-          </DashboardLayout >
-            );
+      )}
+
+      {/* Modal Konfirmasi Hapus */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full mx-4 p-6">
+            <div className="flex flex-col items-center text-center">
+              <div className="mb-4 rounded-full bg-red-100 p-3">
+                <ExclamationTriangleIcon className="h-12 w-12 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Hapus Gejala Ini?</h3>
+              <p className="text-sm text-gray-600 mb-6">
+                Apakah Anda yakin ingin menghapus gejala{' '}
+                <span className="font-medium text-gray-900">{deletingKode}</span>?
+                Tindakan ini tidak dapat dibatalkan.
+              </p>
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={cancelDelete}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Ya, Hapus
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </DashboardLayout>
+  );
 }

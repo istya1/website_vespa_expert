@@ -61,13 +61,34 @@ export default function DashboardPage() {
         const currentUser = await AuthService.getUser();
         setUser(currentUser);
 
-        const [totalGejala, totalKerusakan, monthlyStats, totalPengguna, recentUsersData] = await Promise.all([
-          GejalaService.count?.() ?? GejalaService.getAll().then(res => res.length),
-          KerusakanService.count?.() ?? KerusakanService.getAll().then(res => res.length),
-          UserService.getMonthlyUserStats(),
-          UserService.count(),
-          UserService.getRecent(5),
-        ]);
+        // ✅ Deklarasi sekali pakai let
+        let totalGejala = 0;
+        let totalKerusakan = 0;
+        let monthlyStats: MonthlyUserStat[] = [];
+        let totalPengguna = 0;
+        let recentUsersData: any[] = [];
+
+        try {
+          const gejala = await GejalaService.getAll();
+          totalGejala = gejala?.length || 0;
+        } catch {}
+
+        try {
+          const kerusakan = await KerusakanService.getAll();
+          totalKerusakan = kerusakan?.length || 0;
+        } catch {}
+
+        try {
+          monthlyStats = await UserService.getMonthlyUserStats();
+        } catch {}
+
+        try {
+          totalPengguna = await UserService.count();
+        } catch {}
+
+        try {
+          recentUsersData = await UserService.getRecent(5);
+        } catch {}
 
         setRecentUsers(recentUsersData);
 
@@ -141,9 +162,10 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <DashboardLayout title="Loading...">
-        <div className="flex justify-center items-center h-[60vh]">
-          <p className="text-gray-500">Memuat dashboard...</p>
+      <DashboardLayout title="...">
+        <div className="flex flex-col justify-center items-center h-64 gap-3">
+          <img src="/asset/load.png" alt="Loading" className="w-44 h-28 animate-pulse" />
+          <p className="text-sm text-gray-500">Memuat data...</p>
         </div>
       </DashboardLayout>
     );
@@ -165,7 +187,6 @@ export default function DashboardPage() {
         {/* GRAFIK + TABEL PENGGUNA TERBARU */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          {/* Grafik Pengguna Baru */}
           <div className="bg-white p-4 rounded-xl shadow">
             <h3 className="mb-3 font-semibold">Pengguna Baru</h3>
             <div className="h-[300px]">
@@ -173,11 +194,10 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Tabel Pengguna Terbaru */}
           <div className="bg-white p-4 rounded-xl shadow">
             <div className="flex justify-between items-center mb-3">
               <h3 className="font-semibold">Pengguna Terdaftar Terbaru</h3>
-              <a href="/dashboard/pengguna" className="text-sm text-blue-500 hover:underline">
+              <a href="/master-data/admin" className="text-sm text-blue-500 hover:underline">
                 Lihat semua →
               </a>
             </div>
@@ -210,8 +230,8 @@ export default function DashboardPage() {
                     <td className="py-2 text-gray-400 text-xs">
                       {u.created_at
                         ? new Date(u.created_at).toLocaleDateString('id-ID', {
-                            day: 'numeric', month: 'short', year: 'numeric',
-                          })
+                          day: 'numeric', month: 'short', year: 'numeric',
+                        })
                         : '—'}
                     </td>
                   </tr>
@@ -226,7 +246,6 @@ export default function DashboardPage() {
         {user?.role === 'superadmin' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-            {/* Grafik Admin Baru */}
             <div className="bg-white p-4 rounded-xl shadow">
               <h3 className="mb-3 font-semibold">Admin Baru</h3>
               <div className="h-[300px]">
@@ -234,11 +253,10 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Tabel Daftar Admin */}
             <div className="bg-white p-4 rounded-xl shadow">
               <div className="flex justify-between items-center mb-3">
                 <h3 className="font-semibold">Daftar Admin Terdaftar</h3>
-                <a href="/dashboard/admin" className="text-sm text-blue-500 hover:underline">
+                <a href="/master-data/admin" className="text-sm text-blue-500 hover:underline">
                   Lihat semua →
                 </a>
               </div>
@@ -279,8 +297,8 @@ export default function DashboardPage() {
                       <td className="py-2 text-gray-400 text-xs">
                         {admin.created_at
                           ? new Date(admin.created_at).toLocaleDateString('id-ID', {
-                              month: 'short', year: 'numeric',
-                            })
+                            month: 'short', year: 'numeric',
+                          })
                           : '—'}
                       </td>
                     </tr>
@@ -289,7 +307,6 @@ export default function DashboardPage() {
               </table>
             </div>
 
-            {/* Distribusi Pengguna */}
             <div className="bg-white p-4 rounded-xl shadow lg:col-span-2">
               <h3 className="font-semibold mb-4">Distribusi Pengguna</h3>
               <div className="space-y-4 max-w-md">

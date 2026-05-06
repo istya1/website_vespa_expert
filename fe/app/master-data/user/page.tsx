@@ -28,11 +28,10 @@ export default function UserPage() {
 
   const roleBadge = (role: string) => (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full ${
-        role === 'admin'
+      className={`inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full ${role === 'admin'
           ? 'bg-red-100 text-red-800'
           : 'bg-emerald-100 text-emerald-800'
-      }`}
+        }`}
     >
       {role === 'admin' ? 'Admin' : 'Pengguna'}
     </span>
@@ -57,8 +56,9 @@ export default function UserPage() {
         {/* Table Container */}
         <div className="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
           {loading ? (
-            <div className="py-10 text-center text-gray-500">
-              Memuat data pengguna...
+            <div className="flex flex-col justify-center items-center h-64 gap-3">
+              <img src="/asset/load.png" alt="Loading" className="w-44 h-28 animate-pulse" />
+              <p className="text-sm text-gray-500">Memuat data...</p>
             </div>
           ) : userList.length === 0 ? (
             <div className="py-10 text-center text-gray-500">
@@ -134,7 +134,7 @@ export default function UserPage() {
         </div>
       </div>
 
-   
+
     </DashboardLayout>
   );
 }

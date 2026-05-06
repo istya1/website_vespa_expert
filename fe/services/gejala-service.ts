@@ -1,37 +1,57 @@
-// src/services/GejalaService.ts
-import ApiService from './api-service';
-import { Gejala, ApiResponse } from '@/types';
+import api from './api-service';
 
-class GejalaService {
- async getAll(jenisMotor?: string): Promise<Gejala[]> {
-  const params = jenisMotor
-    ? `?jenis_motor=${encodeURIComponent(jenisMotor)}`
-    : '';
+export interface Gejala {
+  kode_gejala: string;
+  nama_gejala: string;
+  jenis_motor: string;
+  kategori_id: number;
+  bobot: number;
 
-  return await ApiService.get<Gejala[]>(`/gejala${params}`);
+  // relasi
+  kategori?: {
+    id: number;
+    nama_kategori: string;
+  };
 }
 
+const GejalaService = {
+  // GET ALL (optional filter jenis_motor)
+ async getAll(jenis_motor?: string): Promise<Gejala[]> {
+  const res = await api.get('/gejala', {
+    params: { jenis_motor }
+  });
+  console.log('HASIL API:', res); // ← ini yang penting
+  return Array.isArray(res) ? res : (res as any)?.data ?? [];
+},
 
-  async getById(kode: string): Promise<Gejala> {
-    return await ApiService.get<Gejala>(`/gejala/${kode}`);
+  // GET BY KODE
+  async getByKode(kode: string): Promise<Gejala> {
+    const res = await api.get(`/gejala/${kode}`);
+    return res.data; // ✅
+  },
+
+  // CREATE
+  async create(payload: {
+    nama_gejala: string;
+    jenis_motor: string;
+    kategori_id: number;
+    bobot: number;
+  }) {
+    const res = await api.post('/gejala', payload);
+    return res.data;
+  },
+
+  // UPDATE
+  async update(kode: string, payload: Partial<Gejala>) {
+    const res = await api.put(`/gejala/${kode}`, payload);
+    return res.data; // ✅
+  },
+
+  // DELETE
+  async delete(kode: string) {
+    const res = await api.delete(`/gejala/${kode}`);
+    return res.data; // ✅
   }
+};
 
-  async create(data: Partial<Gejala>): Promise<ApiResponse<Gejala>> {
-    return await ApiService.post<ApiResponse<Gejala>>('/gejala', data);
-  }
-
-  async update(kode: string, data: Partial<Gejala>): Promise<ApiResponse<Gejala>> {
-    return await ApiService.put<ApiResponse<Gejala>>(`/gejala/${kode}`, data);
-  }
-
-  async delete(kode: string): Promise<ApiResponse> {
-    return await ApiService.delete<ApiResponse>(`/gejala/${kode}`);
-  }
-
-  async count(): Promise<number> {
-    const gejala = await this.getAll();
-    return Array.isArray(gejala) ? gejala.length : 0;
-  }
-}
-
-export default new GejalaService();
+export default GejalaService;

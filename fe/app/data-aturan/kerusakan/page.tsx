@@ -1,7 +1,6 @@
-// src/app/data-aturan/kerusakan/page.tsx
 'use client';
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react'; 
+import { Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import DashboardLayout from '@/components/dashboard-layout';
 import KerusakanService from '@/services/kerusakan-service';
 import { Kerusakan } from '@/types';
@@ -15,21 +14,23 @@ export default function KerusakanPage() {
   const [editMode, setEditMode] = useState(false);
   const [selectedKerusakan, setSelectedKerusakan] = useState<string>('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deletingKode, setDeletingKode] = useState<string>(''); 
+  const [deletingKode, setDeletingKode] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'Primavera 150' | 'Primavera S 150' | 'LX 125' | 'Sprint 150' | 'Sprint S 150'>('Primavera 150');
 
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 5;
 
   const [formData, setFormData] = useState<{
-  nama_kerusakan: string;
-  solusi: string;
-  jenis_motor: 'Primavera 150' | 'Primavera S 150' | 'LX 125' | 'Sprint 150' | 'Sprint S 150';
-}>({
-  nama_kerusakan: '',
-  solusi: '',
-  jenis_motor: 'Primavera 150',
-});
+    nama_kerusakan: string;
+    solusi: string;
+    kategori: string;
+    jenis_motor: 'Primavera 150' | 'Primavera S 150' | 'LX 125' | 'Sprint 150' | 'Sprint S 150';
+  }>({
+    nama_kerusakan: '',
+    solusi: '',
+    kategori: '',
+    jenis_motor: 'Primavera 150',
+  });
 
   useEffect(() => {
     fetchKerusakan();
@@ -49,28 +50,36 @@ export default function KerusakanPage() {
   };
 
   const handleOpenModal = (kerusakan?: Kerusakan) => {
-  if (kerusakan) {
-    setEditMode(true);
-    setSelectedKerusakan(kerusakan.kode_kerusakan);
-    setFormData({
-      nama_kerusakan: kerusakan.nama_kerusakan,
-      solusi: kerusakan.solusi || '',
-      jenis_motor: kerusakan.jenis_motor as typeof formData.jenis_motor,
-    });
-  } else {
-    setEditMode(false);
-    setFormData({
-      nama_kerusakan: '',
-      solusi: '',
-      jenis_motor: activeTab, 
-    });
-  }
-  setShowModal(true);
-};
+    if (kerusakan) {
+      setEditMode(true);
+      setSelectedKerusakan(kerusakan.kode_kerusakan);
+      setFormData({
+        nama_kerusakan: kerusakan.nama_kerusakan,
+        solusi: kerusakan.solusi || '',
+        kategori: kerusakan.kategori || '',
+        jenis_motor: kerusakan.jenis_motor as typeof formData.jenis_motor,
+      });
+    } else {
+      setEditMode(false);
+      setFormData({
+        nama_kerusakan: '',
+        solusi: '',
+        kategori: '',
+        jenis_motor: activeTab,
+      });
+    }
+    setShowModal(true);
+  };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedKerusakan('');
+    setFormData({
+      nama_kerusakan: '',
+      solusi: '',
+      kategori: '',
+      jenis_motor: activeTab,
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -116,7 +125,6 @@ export default function KerusakanPage() {
     setDeletingKode('');
   };
 
-   // Filter data berdasarkan tab aktif
   const filteredKerusakan = kerusakanList.filter(k => k.jenis_motor === activeTab);
   const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
@@ -156,69 +164,63 @@ export default function KerusakanPage() {
         </nav>
       </div>
 
-{/* Table */}
-{loading ? (
-  <div className="flex flex-col justify-center items-center h-64 gap-3">
-    <img src="/asset/load.png" alt="Loading" className="w-44 h-28 animate-pulse" />
-    <p className="text-sm text-gray-500">Memuat data...</p>
-  </div>
-) : (
-  <div className="bg-white rounded-lg shadow-md overflow-hidden">
-    <table className="min-w-full divide-y divide-gray-200">
-      <thead className="bg-gray-50">
-        <tr>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Kode
-          </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Nama Kerusakan
-          </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Solusi
-          </th>
-          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Aksi
-          </th>
-        </tr>
-      </thead>
-
-      <tbody className="bg-white divide-y divide-gray-200">
-          {currentKerusakan.map((kerusakan) => (
-                  <tr key={kerusakan.kode_kerusakan} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {kerusakan.kode_kerusakan}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {kerusakan.nama_kerusakan}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {kerusakan.solusi}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleOpenModal(kerusakan)}
-                          className="text-primary-600 hover:text-primary-900 p-1 hover:bg-primary-50 rounded transition-colors"
-                          title="Edit"
-                        >
-                          <Pencil size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(kerusakan.kode_kerusakan)}
-                          className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded transition-colors"
-                          title="Hapus"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+      {/* Table */}
+      {loading ? (
+        <div className="flex flex-col justify-center items-center h-64 gap-3">
+          <img src="/asset/load.png" alt="Loading" className="w-44 h-28 animate-pulse" />
+          <p className="text-sm text-gray-500">Memuat data...</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kode</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama Kerusakan</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Solusi</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {currentKerusakan.map((kerusakan) => (
+                <tr key={kerusakan.kode_kerusakan} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{kerusakan.kode_kerusakan}</td>
+                  <td className="px-6 py-4 text-sm text-gray-900">{kerusakan.nama_kerusakan}</td>
+                  <td className="px-6 py-4 text-sm text-gray-900">
+                    {kerusakan.kategori ? (
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                        {kerusakan.kategori}
+                      </span>
+                    ) : '-'}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-900">{kerusakan.solusi}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleOpenModal(kerusakan)}
+                        className="text-primary-600 hover:text-primary-900 p-1 hover:bg-primary-50 rounded transition-colors"
+                        title="Edit"
+                      >
+                        <Pencil size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(kerusakan.kode_kerusakan)}
+                        className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded transition-colors"
+                        title="Hapus"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
             </tbody>
-    </table>
-  </div>
-)}
- {/* Pagination */}
+          </table>
+        </div>
+      )}
+
+      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-2 mt-4">
           <button
@@ -228,20 +230,17 @@ export default function KerusakanPage() {
           >
             Prev
           </button>
-
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
             <button
               key={page}
               onClick={() => setCurrentPage(page)}
-              className={`px-3 py-1 rounded ${page === currentPage
-                ? 'bg-primary-600 text-white'
-                : 'bg-gray-200 hover:bg-gray-300'
-                }`}
+              className={`px-3 py-1 rounded ${
+                page === currentPage ? 'bg-primary-600 text-white' : 'bg-gray-200 hover:bg-gray-300'
+              }`}
             >
               {page}
             </button>
           ))}
-
           <button
             onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
             disabled={currentPage === totalPages}
@@ -249,16 +248,15 @@ export default function KerusakanPage() {
           >
             Next
           </button>
-  </div>
-)}
-          
+        </div>
+      )}
+
       {/* Modal Tambah/Edit */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold mb-4">{editMode ? 'Edit Kerusakan' : 'Tambah Kerusakan'}</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Kode hanya tampil saat edit (read-only) */}
               {editMode && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Kode Kerusakan</label>
@@ -273,7 +271,9 @@ export default function KerusakanPage() {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nama Kerusakan <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nama Kerusakan <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={formData.nama_kerusakan}
@@ -283,25 +283,51 @@ export default function KerusakanPage() {
                   required
                 />
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Solusi <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Kategori <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.kategori}
+                  onChange={(e) => setFormData({ ...formData, kategori: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none bg-white"
+                  required
+                >
+                  <option value="">-- Pilih Kategori --</option>
+                  <option value="Mesin">Mesin</option>
+                  <option value="CVT">CVT</option>
+                  <option value="Kelistrikan">Kelistrikan</option>
+                  <option value="Rem & Keselamatan">Rem & Keselamatan</option>
+                  <option value="Handling/Suspensi">Handling/Suspensi</option>
+                  <option value="Injeksi/Fuel System">Injeksi/Fuel System</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Solusi <span className="text-red-500">*</span>
+                </label>
                 <textarea
                   value={formData.solusi}
                   onChange={(e) => setFormData({ ...formData, solusi: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                   placeholder="Masukkan solusi kerusakan"
+                  rows={3}
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Jenis Motor <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Jenis Motor <span className="text-red-500">*</span>
+                </label>
                 <select
                   value={formData.jenis_motor}
-                  onChange={(e) => setFormData({ ...formData, jenis_motor: e.target.value as 'Primavera 150' | 'Primavera S 150' | 'LX 125' | 'Sprint 150' | 'Sprint S 150' })}
+                  onChange={(e) => setFormData({ ...formData, jenis_motor: e.target.value as typeof formData.jenis_motor })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                   required
-                  disabled={editMode} // Tidak boleh ubah jenis saat edit
+                  disabled={editMode}
                 >
                   {JENIS_MOTOR.map((jenis) => (
                     <option key={jenis} value={jenis}>{jenis}</option>
@@ -333,7 +359,8 @@ export default function KerusakanPage() {
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Hapus Kerusakan Ini?</h3>
               <p className="text-sm text-gray-600 mb-6">
-                Apakah Anda yakin ingin menghapus kerusakan <span className="font-medium text-gray-900">{deletingKode}</span>? Tindakan ini tidak dapat dibatalkan.
+                Apakah Anda yakin ingin menghapus kerusakan{' '}
+                <span className="font-medium text-gray-900">{deletingKode}</span>? Tindakan ini tidak dapat dibatalkan.
               </p>
               <div className="flex gap-3 w-full">
                 <button onClick={cancelDelete} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">

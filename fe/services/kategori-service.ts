@@ -1,16 +1,36 @@
-// src/services/kategori-service.ts
-import ApiService from './api-service';
+import api from './api-service';
 
-export interface KategoriItem {
-  id: string | number;
-  nama: string;
-  bobot: number;
+export interface Kategori {
+  id: number;
+  nama_kategori: string;
+  bobot_default: number;
 }
 
-class KategoriService {
-  async getAll(): Promise<KategoriItem[]> {
-    return await ApiService.get<KategoriItem[]>('/kategori');
+const KategoriService = {
+  async getAll(): Promise<Kategori[]> {
+    const res = await api.get('/kategori');
+    return res?.data ?? res ?? [];
+  },
+
+  async getById(id: number): Promise<Kategori> {
+    const res = await api.get(`/kategori/${id}`);
+    return res?.data ?? res;
+  },
+
+  async create(payload: { nama_kategori: string; bobot_default: number }) {
+    const res = await api.post('/kategori', payload);
+    return res?.data ?? res;
+  },
+
+  async update(id: number, payload: { nama_kategori: string; bobot_default: number }) {
+    const res = await api.put(`/kategori/${id}`, payload);
+    return res?.data ?? res;
+  },
+
+  async delete(id: number) {
+    const res = await api.delete(`/kategori/${id}`);
+    return res?.data ?? res;
   }
-}
+};
 
-export default new KategoriService();
+export default KategoriService;

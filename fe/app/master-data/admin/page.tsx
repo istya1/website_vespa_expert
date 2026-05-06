@@ -139,8 +139,9 @@ export default function AdminPage() {
         {/* TABLE */}
         <div className="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
           {loading ? (
-            <div className="py-12 text-center text-gray-500">
-              Memuat data...
+            <div className="flex flex-col justify-center items-center h-64 gap-3">
+              <img src="/asset/load.png" alt="Loading" className="w-44 h-28 animate-pulse" />
+              <p className="text-sm text-gray-500">Memuat data...</p>
             </div>
           ) : adminList.length === 0 ? (
             <div className="py-12 text-center text-gray-500">
@@ -350,52 +351,52 @@ export default function AdminPage() {
         </div>
       )}
       {showDeleteModal && (
-  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-    <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 animate-in fade-in zoom-in duration-200">
-      <div className="flex flex-col items-center text-center">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 animate-in fade-in zoom-in duration-200">
+            <div className="flex flex-col items-center text-center">
 
-        <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-4">
-          <Trash2 className="w-7 h-7 text-red-600" />
+              <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-4">
+                <Trash2 className="w-7 h-7 text-red-600" />
+              </div>
+
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                Hapus admin ini?
+              </h3>
+              <p className="text-sm text-gray-500 mb-3">
+                Anda akan menghapus
+              </p>
+
+              <div className="w-full bg-gray-50 rounded-lg px-4 py-3 mb-3 flex items-center gap-3">
+                <UserCircle size={16} className="text-gray-400 flex-shrink-0" />
+                <span className="text-sm font-medium text-gray-800 text-left truncate">
+                  {deletingName}
+                </span>
+              </div>
+
+              <p className="text-xs text-gray-400 mb-5">
+                Tindakan ini tidak dapat dibatalkan.
+              </p>
+
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={cancelDelete}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 active:scale-95 rounded-xl transition-all flex items-center justify-center gap-2"
+                >
+                  <Trash2 size={15} />
+                  Ya, hapus
+                </button>
+              </div>
+
+            </div>
+          </div>
         </div>
-
-        <h3 className="text-lg font-semibold text-gray-900 mb-1">
-          Hapus admin ini?
-        </h3>
-        <p className="text-sm text-gray-500 mb-3">
-          Anda akan menghapus
-        </p>
-
-        <div className="w-full bg-gray-50 rounded-lg px-4 py-3 mb-3 flex items-center gap-3">
-         <UserCircle size={16} className="text-gray-400 flex-shrink-0" />
-          <span className="text-sm font-medium text-gray-800 text-left truncate">
-            {deletingName}
-          </span>
-        </div>
-
-        <p className="text-xs text-gray-400 mb-5">
-          Tindakan ini tidak dapat dibatalkan.
-        </p>
-
-        <div className="flex gap-3 w-full">
-          <button
-            onClick={cancelDelete}
-            className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
-          >
-            Batal
-          </button>
-          <button
-            onClick={confirmDelete}
-            className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 active:scale-95 rounded-xl transition-all flex items-center justify-center gap-2"
-          >
-            <Trash2 size={15} />
-            Ya, hapus
-          </button>
-        </div>
-
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </DashboardLayout >
   );
 }
