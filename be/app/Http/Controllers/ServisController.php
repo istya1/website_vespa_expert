@@ -142,4 +142,5 @@ class ServisController extends Controller
 
         return response()->json(['berhasil' => true, 'data' => $data]);
     }
+    
 }

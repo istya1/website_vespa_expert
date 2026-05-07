@@ -116,11 +116,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // SERVICE TEMPLATE
     Route::apiResource('service-templates', ServiceTemplateController::class);
 
-    // VESPA CARE
-    // Route::get('vespa-care/template', [VespaCareController::class, 'getTemplates']);
-    // Route::get('vespa-care/template/{id}', [VespaCareController::class, 'getTemplate']);
-
-
     // USER REMINDER
     Route::get('user-reminders', [UserServiceReminderController::class, 'index']);
     Route::post('user-reminders/{id}/send-notification', [UserServiceReminderController::class, 'sendNotification']);
@@ -141,16 +136,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/diagnosa', [DiagnosaController::class, 'indexMobile']);
         Route::post('/diagnosa', [DiagnosaController::class, 'storeMobile']);
         Route::get('/diagnosa/{id}', [DiagnosaController::class, 'show']);
-
-
-        // Route yang butuh token (auth:sanctum)
-        // Route::middleware('auth:sanctum')->prefix('motor')->group(function () {
-        //     Route::post('/update-km', [ServiceController::class, 'updateKm']);
-        //     Route::get('/info', [ServiceController::class, 'getInfoMotor']);
-        // });
-
-        // Route::get('/motor/cek-notif', [ServiceController::class, 'cekDanKirimNotif']);
-        // Route::get('/motor/cek-notif/{userId}', [ServiceController::class, 'cekDanKirimNotif']);
     });
 
     Route::apiResource('kategori', KategoriController::class);
@@ -183,49 +168,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/admin/servis', [ServisController::class, 'adminIndex']);
         });
     });
-
-    // TESTING FCM
-    // Route::get('/test-fcm-topic', function () {
-    //     try {
-    //         $credentialsPath = config('firebase.credentials');
-    //         $fullPath = base_path($credentialsPath);
-
-    //         $factory = (new Factory)->withServiceAccount($fullPath);
-    //         $messaging = $factory->createMessaging();
-
-    //         $notification = FirebaseNotification::create()
-    //             ->withTitle('Test FCM Sukses!')
-    //             ->withBody('Laravel sudah terhubung ke Firebase Cloud Messaging.');
-
-    //         $message = CloudMessage::new()->withNotification($notification);
-
-    //         $messaging->sendMulticast($message, ['test-vespa']);
-
-    //         return response()->json([
-    //             'status' => 'success',
-    //             'message' => 'Notifikasi berhasil dikirim ke topic "test-vespa"!'
-    //         ]);
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'status' => 'error',
-    //             'message' => $e->getMessage(),
-    //             'path_tried' => $fullPath ?? 'null',
-    //             'line' => $e->getLine()
-    //         ], 500);
-    //     }
-    // });
-
-    // Route::get('/debug-firebase', function () {
-    //     $configValue = config('firebase.credentials');
-    //     $fullPath = base_path($configValue ?? 'TIDAK ADA');
-
-    //     return response()->json([
-    //         'firebase_credentials_from_config' => $configValue,
-    //         'full_path_calculated' => $fullPath,
-    //         'file_exists' => file_exists($fullPath),
-    //         'base_path' => base_path(),
-    //     ]);
-    // });
 
     // Tambahkan di dalam Route::middleware('auth:sanctum')
 // ── Notifikasi ─────────────────────────────────────
