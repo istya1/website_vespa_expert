@@ -64,21 +64,34 @@ export default function RiwayatGantiOliPage() {
   const [currentPage, setCurrentPage]   = useState(1);
   const itemsPerPage = 10;
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/servis?semua=1`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const json = await res.json();
-      setData(json.data?.data ?? json.data ?? []);
-    } catch {
-      toast.error('Gagal memuat data ganti oli');
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchData = async () => {
+  try {
+    setLoading(true);
+    const token = localStorage.getItem('token');
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/admin/servis?per_page=100`,
+      {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+      }
+    );
+    const json = await res.json();
+    
+    console.log('FULL JSON:', json);
+    console.log('DATA:', json.data);
+    console.log('DATA.DATA:', json.data?.data);
+    console.log('ITEM PERTAMA:', json.data?.data?.[0]);
+    
+    setData(json.data?.data ?? json.data ?? []);
+  } catch (err) {
+    console.error('Error:', err);
+    toast.error('Gagal memuat data ganti oli');
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => { fetchData(); }, []);
 
