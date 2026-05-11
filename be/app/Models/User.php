@@ -28,12 +28,7 @@ class User extends Authenticatable
         'alamat',
         'jenis_motor',
         'email_verified_at',
-        // 'km_terakhir',
-        // 'tanggal_service_terakhir',
-        // 'km_service_berikutnya',
-        // 'sudah_dinotifikasi',
-        // 'fcm_token',
-
+        'expo_push_token',
     ];
 
     protected $hidden = [
@@ -60,35 +55,4 @@ class User extends Authenticatable
         return $this->hasMany(CatatanServis::class);
     }
 
-    // Casting tipe data supaya Laravel paham
-    //     protected $casts = [
-    //         'sudah_dinotifikasi' => 'boolean',
-    //         'km_terakhir' => 'integer',
-    //         'km_service_berikutnya' => 'integer?',
-    //         'tanggal_service_terakhir' => 'date',
-    //     ];
-
-    //     // Fungsi helper untuk dapatkan interval service berdasarkan jenis motor
-    //     public function getIntervalServiceAttribute()
-    //     {
-    //         $intervals = [
-    //             'Primavera 150'    => 10000,
-    //             'Primavera S 150'  => 10000,
-    //             'Sprint 150'       => 10000,
-    //             'Sprint S 150'     => 10000,
-    //             'LX 125'           => 8000,
-    //         ];
-
-    //         return $intervals[$this->jenis_motor] ?? 10000;
-    //     }
-
-    //     // Fungsi untuk cek apakah sudah waktunya service (bisa dipakai di controller atau cron)
-    //     public function perluService($toleransiKm = 500)
-    //     {
-    //         if (!$this->km_service_berikutnya) {
-    //             return false;
-    //         }
-
-    //         return $this->km_terakhir >= ($this->km_service_berikutnya - $toleransiKm);
-    //     }
 }

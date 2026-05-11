@@ -50,7 +50,7 @@ class ServisController extends Controller
             'kendaraan_id'          => 'required|integer',
             'km_sekarang'           => 'required|integer|min:0',
             'rata_rata_km_per_hari' => 'required|integer|min:1',
-            'interval_ganti_oli'    => 'nullable|integer|min:1000',
+            'interval_ganti_oli'    => 'nullable|integer|min:1',
             'expo_push_token'       => 'nullable|string',
         ]);
 
@@ -63,7 +63,7 @@ class ServisController extends Controller
             $request->user()->update(['expo_push_token' => $validated['expo_push_token']]);
         }
 
-        $interval     = $validated['interval_ganti_oli'] ?? 4000;
+        $interval     = $validated['interval_ganti_oli'] ?? 140;
         $kmTarget     = $validated['km_sekarang'] + $interval;
         $hariDeadline = (int) ceil($interval / $validated['rata_rata_km_per_hari']);
         $deadline     = Carbon::now()->addDays($hariDeadline);
@@ -133,14 +133,22 @@ class ServisController extends Controller
         return response()->json(['berhasil' => true, 'data' => $riwayat]);
     }
 
-    public function adminIndex(Request $request)
-    {
-        $data = CatatanServis::with(['user', 'kendaraan'])
-            ->where('sudah_ganti_oli', 0)
-            ->latest()
-            ->paginate(20);
-
-        return response()->json(['berhasil' => true, 'data' => $data]);
+   public function adminIndex(Request $request)
+{
+    // Cek role manual
+    if (!in_array($request->user()->role, ['admin', 'superadmin'])) {
+        return response()->json([
+            'berhasil' => false,
+            'pesan'    => 'Akses ditolak'
+        ], 403);
     }
+
+    $perPage = $request->get('per_page', 50);
     
+    $data = CatatanServis::with(['user', 'kendaraan'])
+        ->latest()
+        ->paginate($perPage);
+
+    return response()->json(['berhasil' => true, 'data' => $data]);
+}
 }

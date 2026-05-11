@@ -30,18 +30,29 @@ class KirimReminderOli extends Command
             $estKm    = $servis->estimasi_km_sekarang;
 
             $this->info("Servis ID: {$servis->id}, Sisa hari: {$sisaHari}, Token: {$user->expo_push_token}");
+
             // Hanya kirim di H-7, H-3, H-1
             if (!in_array($sisaHari, [7, 3, 1])) {
-             $this->warn("Skip - sisa hari {$sisaHari} tidak masuk H-7, H-3, H-1"); 
-             continue;
+                $this->warn("Skip - sisa hari {$sisaHari} tidak masuk H-7, H-3, H-1");
+                continue;
             }
+
+            // ✅ Cek token dulu sebelum lanjut
+            if (empty($user->expo_push_token)) {
+                $this->warn("Skip - token kosong untuk user: {$user->email}");
+                continue;
+            }
+
             // Cek sudah pernah kirim hari ini belum
             $sudahKirim = DB::table('log_notifikasi')
                 ->where('catatan_servis_id', $servis->id)
                 ->where('hari_sebelum_deadline', $sisaHari)
                 ->exists();
 
-            if ($sudahKirim) continue;
+            if ($sudahKirim) {
+                $this->warn("Skip - sudah pernah kirim H-{$sisaHari} untuk servis ID: {$servis->id}");
+                continue;
+            }
 
             $judul = 'Pengingat Ganti Oli';
             $pesan = "Estimasi KM kamu {$estKm} km. Ganti oli {$sisaHari} hari lagi!";
@@ -60,7 +71,7 @@ class KirimReminderOli extends Command
             );
 
             if ($berhasil) {
-                // 2. Simpan ke log_notifikasi (sudah ada)
+                // 2. Simpan ke log_notifikasi
                 DB::table('log_notifikasi')->insert([
                     'catatan_servis_id'     => $servis->id,
                     'user_id'               => $user->id_user,
@@ -70,7 +81,7 @@ class KirimReminderOli extends Command
                     'terkirim_at'           => now(),
                 ]);
 
-                // 3. Simpan ke notifikasi_user (untuk ditampilkan di app)
+                // 3. Simpan ke notifikasi_user
                 DB::table('notifikasi_user')->insert([
                     'user_id'    => $user->id_user,
                     'judul'      => $judul,

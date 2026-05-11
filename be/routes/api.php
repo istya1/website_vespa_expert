@@ -163,10 +163,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/servis/{kendaraan_id}/riwayat',    [ServisController::class, 'riwayat']);
         Route::patch('/servis/{id}/konfirmasi',         [ServisController::class, 'konfirmasiGantiOli']);
 
-        // ── Admin only ─────────────────────────────────────
-        Route::middleware('role:admin')->group(function () {
-            Route::get('/admin/servis', [ServisController::class, 'adminIndex']);
-        });
+        Route::get('/admin/servis', [ServisController::class, 'adminIndex']);
     });
 
     // Tambahkan di dalam Route::middleware('auth:sanctum')
@@ -200,4 +197,12 @@ Route::patch('/notifikasi/baca-semua', function (Request $request) {
 
     return response()->json(['berhasil' => true]);
 });
+ Route::post('/update-token', function (Request $request) {
+            $request->validate(['expo_push_token' => 'required|string']);
+            $request->user()->update([
+                'expo_push_token' => $request->expo_push_token
+            ]);
+            return response()->json(['berhasil' => true]);
+        });
+
 });
