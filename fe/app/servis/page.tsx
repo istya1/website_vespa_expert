@@ -16,7 +16,7 @@ export default function HalamanAdminServis() {
 
   useEffect(() => {
     const token = localStorage.getItem('token') ?? '';
-    getSemuaServisAdmin(token).then(d => {
+    getSemuaServisAdmin().then(d => {
       setData(d);
       setLoading(false);
     });

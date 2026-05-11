@@ -44,4 +44,9 @@ export const servisApi = {
     const res = await api.patch(`/servis/${servisId}/ganti-oli`);
     return res;
   },
+  
 };
+export async function getSemuaServisAdmin(): Promise<DataServis[]> {
+  const res = await api.get('/admin/servis');
+  return res.data.data ?? [];
+}
