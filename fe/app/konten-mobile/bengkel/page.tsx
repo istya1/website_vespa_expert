@@ -1,12 +1,76 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2, AlertTriangle, Upload, X, Store } from 'lucide-react';
+import { useEffect, useState, useMemo } from 'react';
+import { Plus, Pencil, Trash2, AlertTriangle, Upload, X, Store, Search } from 'lucide-react';
 import DashboardLayout from '@/components/dashboard-layout';
 import BengkelService from '@/services/bengkel-service';
 import toast from 'react-hot-toast';
 
 const STATUS_OPTIONS = ['draft', 'published'];
+const ITEMS_PER_PAGE = 10;
+
+function validateForm(formData: any): Record<string, string> {
+  const errors: Record<string, string> = {};
+
+  if (!formData.nama || formData.nama.trim() === '') {
+    errors.nama = 'Nama bengkel wajib diisi.';
+  } else if (formData.nama.trim().length < 3) {
+    errors.nama = 'Nama bengkel minimal 3 karakter.';
+  } else if (formData.nama.trim().length > 100) {
+    errors.nama = 'Nama bengkel maksimal 100 karakter.';
+  }
+
+  if (formData.alamat && formData.alamat.length > 255) {
+    errors.alamat = 'Alamat maksimal 255 karakter.';
+  }
+
+  if (formData.telepon) {
+    const teleponRegex = /^[0-9+\-\s]+$/;
+    if (!teleponRegex.test(formData.telepon)) {
+      errors.telepon = 'Nomor telepon hanya boleh berisi angka, +, -, dan spasi.';
+    } else if (formData.telepon.length < 6) {
+      errors.telepon = 'Nomor telepon minimal 6 karakter.';
+    } else if (formData.telepon.length > 20) {
+      errors.telepon = 'Nomor telepon maksimal 20 karakter.';
+    }
+  }
+
+  if (formData.website) {
+    try {
+      const url = new URL(formData.website);
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        errors.website = 'Format website tidak valid. Contoh: https://example.com';
+      }
+    } catch {
+      errors.website = 'Format website tidak valid. Contoh: https://example.com';
+    }
+  }
+
+  if (formData.rating) {
+    const rating = parseFloat(formData.rating);
+    if (isNaN(rating) || rating < 0 || rating > 5) {
+      errors.rating = 'Rating harus berupa angka antara 0 sampai 5.';
+    }
+  }
+
+  if (formData.maps_link) {
+    try {
+      new URL(formData.maps_link);
+    } catch {
+      errors.maps_link = 'Format link Maps tidak valid.';
+    }
+  }
+
+  if (formData.urutan !== '' && formData.urutan < 0) {
+    errors.urutan = 'Urutan tidak boleh kurang dari 0.';
+  }
+
+  if (!formData.status) {
+    errors.status = 'Status wajib dipilih.';
+  }
+
+  return errors;
+}
 
 export default function BengkelPage() {
   const [bengkelList, setBengkelList] = useState<any[]>([]);
@@ -18,6 +82,11 @@ export default function BengkelPage() {
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingId, setDeletingId] = useState<number>(0);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
     nama: '',
@@ -52,7 +121,26 @@ export default function BengkelPage() {
     }
   };
 
+  const filteredList = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return bengkelList;
+    return bengkelList.filter(
+      (b) =>
+        b.nama?.toLowerCase().includes(query) ||
+        b.alamat?.toLowerCase().includes(query) ||
+        b.telepon?.toLowerCase().includes(query)
+    );
+  }, [bengkelList, searchQuery]);
+
+  const totalPages = Math.ceil(filteredList.length / ITEMS_PER_PAGE);
+
+  const paginatedList = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredList.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredList, currentPage]);
+
   const handleOpenModal = (item?: any) => {
+    setFormErrors({});
     if (item) {
       setEditMode(true);
       setSelectedId(item.id);
@@ -85,29 +173,61 @@ export default function BengkelPage() {
     setSelectedId(0);
     setPreviewImage(null);
     setCurrentImage(null);
+    setFormErrors({});
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error('Ukuran gambar maksimal 2MB.');
+        return;
+      }
+
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Format gambar tidak didukung. Gunakan PNG, JPG, atau WEBP.');
+        return;
+      }
+
       const newFileName = file.name
         .replace(/\s+/g, '_')
         .replace(/[^\w\s.-]/gi, '_')
         .toLowerCase();
       const renamedFile = new File([file], newFileName, { type: file.type });
-      setFormData({ ...formData, gambar: renamedFile });
+      setFormData((prev) => ({ ...prev, gambar: renamedFile }));
       setPreviewImage(URL.createObjectURL(file));
     }
   };
 
   const handleRemoveImage = () => {
-    setFormData({ ...formData, gambar: null });
+    setFormData((prev) => ({ ...prev, gambar: null }));
     setPreviewImage(null);
     setCurrentImage(null);
   };
 
+  const handleFieldChange = (field: string, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (formErrors[field]) {
+      setFormErrors((prev) => {
+        const updated = { ...prev };
+        delete updated[field];
+        return updated;
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const errors = validateForm(formData);
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      toast.error('Mohon periksa kembali isian form.');
+      return;
+    }
+
     const loadingToast = toast.loading(editMode ? 'Mengupdate...' : 'Menambahkan...');
 
     const data = new FormData();
@@ -122,7 +242,7 @@ export default function BengkelPage() {
       } else {
         await BengkelService.create(data);
       }
-      toast.success(editMode ? 'Bengkel berhasil diupdate' : 'Bengkel berhasil ditambahkan', { id: loadingToast });
+      toast.success(editMode ? 'Bengkel berhasil diperbarui' : 'Bengkel berhasil ditambahkan', { id: loadingToast });
       handleCloseModal();
       fetchData();
     } catch (error: any) {
@@ -154,22 +274,39 @@ export default function BengkelPage() {
     setDeletingId(0);
   };
 
+  const FieldError = ({ field }: { field: string }) =>
+    formErrors[field] ? (
+      <p className="text-xs text-red-600 mt-1">⚠ {formErrors[field]}</p>
+    ) : null;
+
   return (
     <DashboardLayout title="Bengkel">
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Kelola Bengkel</h2>
-          <p className="text-gray-600 mt-1">Data bengkel untuk mobile app pengguna</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Kelola Bengkel</h2>
+          <p className="text-gray-600 mt-1 text-sm">Data bengkel untuk mobile app pengguna</p>
         </div>
-        <button
-          onClick={() => handleOpenModal()}
-          className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2 w-full sm:w-auto justify-center"
-        >
-          <Plus size={20} />
-          Tambah Bengkel
-        </button>
+        <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2">
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              placeholder="Cari nama, alamat, telepon..."
+              className="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none w-full xs:w-56 sm:w-64"
+            />
+          </div>
+          <button
+            onClick={() => handleOpenModal()}
+            className="bg-primary-600 text-white px-5 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 text-sm whitespace-nowrap"
+          >
+            <Plus size={18} />
+            Tambah Bengkel
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -184,28 +321,28 @@ export default function BengkelPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alamat</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gambar</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Urutan</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alamat</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gambar</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Urutan</th>
+                  <th className="px-4 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {bengkelList.length === 0 ? (
+                {paginatedList.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                       <Store size={48} className="mx-auto mb-2 text-gray-300" />
-                      Belum ada data bengkel
+                      {searchQuery ? `Tidak ada hasil untuk "${searchQuery}"` : 'Belum ada data bengkel'}
                     </td>
                   </tr>
                 ) : (
-                  bengkelList.map((b) => (
+                  paginatedList.map((b) => (
                     <tr key={b.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900 max-w-xs truncate">{b.nama}</td>
-                      <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">{b.alamat}</td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 sm:px-6 py-4 text-sm font-medium text-gray-900 max-w-xs truncate">{b.nama}</td>
+                      <td className="px-4 sm:px-6 py-4 text-sm text-gray-500 max-w-xs truncate">{b.alamat}</td>
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                         {b.gambar_url ? (
                           <img
                             src={b.gambar_url}
@@ -221,19 +358,19 @@ export default function BengkelPage() {
                           </div>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm">
                         <span className={`px-3 py-1 text-xs font-semibold rounded-full ${b.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
                           {b.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{b.urutan}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex items-center justify-center gap-3">
-                          <button onClick={() => handleOpenModal(b)} className="text-primary-600 hover:text-primary-900 p-2 hover:bg-primary-50 rounded-lg transition-colors">
-                            <Pencil size={20} />
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{b.urutan}</td>
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex items-center justify-center gap-2">
+                          <button onClick={() => handleOpenModal(b)} className="text-primary-600 hover:text-primary-800 p-1 hover:bg-primary-50 rounded transition-colors">
+                            <Pencil size={17} />
                           </button>
-                          <button onClick={() => handleDelete(b.id)} className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition-colors">
-                            <Trash2 size={20} />
+                          <button onClick={() => handleDelete(b.id)} className="text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded transition-colors">
+                            <Trash2 size={17} />
                           </button>
                         </div>
                       </td>
@@ -246,39 +383,37 @@ export default function BengkelPage() {
 
           {/* Mobile Card View */}
           <div className="lg:hidden space-y-4">
-            {bengkelList.length === 0 ? (
+            {paginatedList.length === 0 ? (
               <div className="bg-white rounded-lg shadow-md p-8 text-center text-gray-500">
                 <Store size={48} className="mx-auto mb-2 text-gray-300" />
-                Belum ada data bengkel
+                {searchQuery ? `Tidak ada hasil untuk "${searchQuery}"` : 'Belum ada data bengkel'}
               </div>
             ) : (
-              bengkelList.map((b) => (
+              paginatedList.map((b) => (
                 <div key={b.id} className="bg-white rounded-lg shadow-md p-5">
                   <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{b.nama}</p>
-                      <p className="text-sm text-gray-500 mt-1">{b.alamat}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 truncate">{b.nama}</p>
+                      <p className="text-sm text-gray-500 mt-1 line-clamp-2">{b.alamat}</p>
                     </div>
-                    <div className="flex gap-2 ml-3">
-                      <button onClick={() => handleOpenModal(b)} className="text-primary-600 p-1">
-                        <Pencil size={18} />
+                    <div className="flex gap-2 ml-3 shrink-0">
+                      <button onClick={() => handleOpenModal(b)} className="text-primary-600 p-1 hover:bg-primary-50 rounded transition-colors">
+                        <Pencil size={17} />
                       </button>
-                      <button onClick={() => handleDelete(b.id)} className="text-red-600 p-1">
-                        <Trash2 size={18} />
+                      <button onClick={() => handleDelete(b.id)} className="text-red-600 p-1 hover:bg-red-50 rounded transition-colors">
+                        <Trash2 size={17} />
                       </button>
                     </div>
                   </div>
                   {b.gambar_url && (
-                    <div className="mt-4">
-                      <img
-                        src={b.gambar_url}
-                        alt={b.nama}
-                        className="w-full h-48 object-cover rounded-lg"
-                        onError={(e) => {
-                          e.currentTarget.src = 'https://via.placeholder.com/600x400?text=No+Image';
-                        }}
-                      />
-                    </div>
+                    <img
+                      src={b.gambar_url}
+                      alt={b.nama}
+                      className="w-full h-48 object-cover rounded-lg mt-2"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://via.placeholder.com/600x400?text=No+Image';
+                      }}
+                    />
                   )}
                   <div className="flex justify-between items-center text-sm mt-3">
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${b.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
@@ -290,37 +425,74 @@ export default function BengkelPage() {
               ))
             )}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-4 flex-wrap">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 text-sm"
+              >
+                Prev
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`px-3 py-1 rounded text-sm ${
+                    page === currentPage
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-gray-200 hover:bg-gray-300'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 text-sm"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </>
       )}
 
       {/* Modal Tambah/Edit */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 sm:p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold mb-4">
               {editMode ? 'Edit Bengkel' : 'Tambah Bengkel'}
             </h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nama Bengkel <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nama Bengkel <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={formData.nama}
-                  onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                  required
+                  onChange={(e) => handleFieldChange('nama', e.target.value)}
+                  placeholder="Masukkan nama bengkel"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${formErrors.nama ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                 />
+                <FieldError field="nama" />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Alamat</label>
                 <textarea
                   value={formData.alamat}
-                  onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                  onChange={(e) => handleFieldChange('alamat', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${formErrors.alamat ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                   rows={2}
                 />
+                <FieldError field="alamat" />
               </div>
 
               <div>
@@ -328,9 +500,11 @@ export default function BengkelPage() {
                 <input
                   type="text"
                   value={formData.telepon}
-                  onChange={(e) => setFormData({ ...formData, telepon: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                  onChange={(e) => handleFieldChange('telepon', e.target.value)}
+                  placeholder="Contoh: 08123456789"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${formErrors.telepon ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                 />
+                <FieldError field="telepon" />
               </div>
 
               <div>
@@ -338,9 +512,11 @@ export default function BengkelPage() {
                 <input
                   type="text"
                   value={formData.website}
-                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                  onChange={(e) => handleFieldChange('website', e.target.value)}
+                  placeholder="https://example.com"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${formErrors.website ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                 />
+                <FieldError field="website" />
               </div>
 
               <div>
@@ -348,9 +524,11 @@ export default function BengkelPage() {
                 <input
                   type="text"
                   value={formData.rating}
-                  onChange={(e) => setFormData({ ...formData, rating: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                  onChange={(e) => handleFieldChange('rating', e.target.value)}
+                  placeholder="Contoh: 4.5"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${formErrors.rating ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                 />
+                <FieldError field="rating" />
               </div>
 
               <div>
@@ -358,7 +536,8 @@ export default function BengkelPage() {
                 <input
                   type="text"
                   value={formData.jam_operasional}
-                  onChange={(e) => setFormData({ ...formData, jam_operasional: e.target.value })}
+                  onChange={(e) => handleFieldChange('jam_operasional', e.target.value)}
+                  placeholder="Contoh: 08.00 - 17.00"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                 />
               </div>
@@ -368,16 +547,18 @@ export default function BengkelPage() {
                 <input
                   type="text"
                   value={formData.maps_link}
-                  onChange={(e) => setFormData({ ...formData, maps_link: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                  onChange={(e) => handleFieldChange('maps_link', e.target.value)}
+                  placeholder="https://maps.google.com/..."
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${formErrors.maps_link ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                 />
+                <FieldError field="maps_link" />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
                 <textarea
                   value={formData.deskripsi}
-                  onChange={(e) => setFormData({ ...formData, deskripsi: e.target.value })}
+                  onChange={(e) => handleFieldChange('deskripsi', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
                   rows={4}
                 />
@@ -386,25 +567,31 @@ export default function BengkelPage() {
               {/* Upload Gambar */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Gambar</label>
-                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                  <div className="space-y-1 text-center">
-                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                    <div className="flex text-sm text-gray-600">
-                      <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500">
-                        <span>Upload file</span>
-                        <input id="file-upload" type="file" className="sr-only" accept="image/*" onChange={handleImageChange} />
-                      </label>
-                      <p className="pl-1">atau drag and drop</p>
+                {!(previewImage || currentImage) && (
+                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                    <div className="space-y-1 text-center">
+                      <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                      <div className="flex text-sm text-gray-600 justify-center">
+                        <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500">
+                          <span>Upload file</span>
+                          <input id="file-upload" type="file" className="sr-only" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} />
+                        </label>
+                        <p className="pl-1">atau drag and drop</p>
+                      </div>
+                      <p className="text-xs text-gray-500">PNG, JPG, WEBP hingga 2MB</p>
                     </div>
-                    <p className="text-xs text-gray-500">PNG, JPG, WEBP hingga 2MB</p>
                   </div>
-                </div>
+                )}
                 {(previewImage || currentImage) && (
-                  <div className="mt-4 relative">
+                  <div className="mt-2 relative">
                     <img src={previewImage || currentImage || ''} alt="Preview" className="w-full h-48 object-cover rounded-lg" />
-                    <button type="button" onClick={handleRemoveImage} className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full">
+                    <button type="button" onClick={handleRemoveImage} className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full hover:bg-red-700 transition-colors">
                       <X size={16} />
                     </button>
+                    <label htmlFor="file-upload-replace" className="absolute bottom-2 right-2 bg-white text-gray-700 text-xs px-2 py-1 rounded shadow cursor-pointer hover:bg-gray-100 transition-colors">
+                      Ganti
+                      <input id="file-upload-replace" type="file" className="sr-only" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} />
+                    </label>
                   </div>
                 )}
               </div>
@@ -415,31 +602,34 @@ export default function BengkelPage() {
                   <input
                     type="number"
                     value={formData.urutan}
-                    onChange={(e) => setFormData({ ...formData, urutan: parseInt(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                    onChange={(e) => handleFieldChange('urutan', parseInt(e.target.value) || 0)}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${formErrors.urutan ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                     min="0"
                   />
+                  <FieldError field="urutan" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Status <span className="text-red-500">*</span>
+                  </label>
                   <select
                     value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                    required
+                    onChange={(e) => handleFieldChange('status', e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${formErrors.status ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                   >
                     {STATUS_OPTIONS.map((s) => (
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
+                  <FieldError field="status" />
                 </div>
               </div>
 
-              <div className="flex gap-3">
-                <button type="submit" className="flex-1 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors">
+              <div className="flex gap-3 pt-2">
+                <button type="submit" className="flex-1 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium">
                   {editMode ? 'Update' : 'Simpan'}
                 </button>
-                <button type="button" onClick={handleCloseModal} className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition-colors">
+                <button type="button" onClick={handleCloseModal} className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition-colors font-medium">
                   Batal
                 </button>
               </div>
@@ -450,8 +640,8 @@ export default function BengkelPage() {
 
       {/* Modal Konfirmasi Hapus */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full mx-4 p-6 animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
             <div className="flex flex-col items-center text-center">
               <div className="mb-4 rounded-full bg-red-100 p-3">
                 <AlertTriangle className="h-12 w-12 text-red-600" />

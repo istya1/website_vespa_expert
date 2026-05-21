@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search } from 'lucide-react';
 import DashboardLayout from '@/components/dashboard-layout';
 import KategoriService, { Kategori } from '@/services/kategori-service';
 import toast from 'react-hot-toast';
@@ -19,6 +19,33 @@ const getBobotBadge = (bobot: number) => {
   return <span className="text-gray-400">-</span>;
 };
 
+// ── Validasi ──────────────────────────────────────────
+interface FormData {
+  nama_kategori: string;
+  bobot_default: number;
+}
+
+interface FormErrors {
+  nama_kategori?: string;
+  bobot_default?: string;
+}
+
+const validateForm = (data: FormData): FormErrors => {
+  const errors: FormErrors = {};
+
+  if (!data.nama_kategori.trim()) {
+    errors.nama_kategori = 'Nama kategori tidak boleh kosong';
+  } else if (data.nama_kategori.trim().length < 3) {
+    errors.nama_kategori = 'Nama kategori minimal 3 karakter';
+  }
+
+  if (![1, 2, 3].includes(data.bobot_default)) {
+    errors.bobot_default = 'Bobot harus dipilih';
+  }
+
+  return errors;
+};
+
 export default function KategoriPage() {
   const [kategoriList, setKategoriList] = useState<Kategori[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,9 +56,14 @@ export default function KategoriPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [deletingNama, setDeletingNama] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');       // ── Search
+  const [formErrors, setFormErrors] = useState<FormErrors>({}); // ── Validasi
   const ITEMS_PER_PAGE = 5;
 
-  const [formData, setFormData] = useState({ nama_kategori: '', bobot_default: 1 });
+  const [formData, setFormData] = useState<FormData>({
+    nama_kategori: '',
+    bobot_default: 1,
+  });
 
   useEffect(() => {
     fetchKategori();
@@ -51,14 +83,18 @@ export default function KategoriPage() {
   };
 
   const handleOpenModal = (kategori?: Kategori) => {
+    setFormErrors({}); // reset error saat buka modal
     if (kategori) {
       setEditMode(true);
       setSelectedId(kategori.id);
-      setFormData({ nama_kategori: kategori.nama_kategori, bobot_default: kategori.bobot_default ?? 1 });
+      setFormData({
+        nama_kategori: kategori.nama_kategori,
+        bobot_default: kategori.bobot_default ?? 1,
+      });
     } else {
       setEditMode(false);
       setSelectedId(null);
-     setFormData({ nama_kategori: '', bobot_default: 1 });
+      setFormData({ nama_kategori: '', bobot_default: 1 });
     }
     setShowModal(true);
   };
@@ -66,10 +102,19 @@ export default function KategoriPage() {
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedId(null);
+    setFormErrors({});
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Jalankan validasi dulu
+    const errors = validateForm(formData);
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
     const loadingToast = toast.loading(editMode ? 'Mengupdate kategori...' : 'Menambahkan kategori...');
     try {
       if (editMode && selectedId) {
@@ -114,22 +159,46 @@ export default function KategoriPage() {
     setDeletingNama('');
   };
 
+  // Filter berdasarkan search
+  const filteredKategori = kategoriList.filter((k) =>
+    searchQuery.trim() === '' ||
+    k.nama_kategori.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    String(k.id).includes(searchQuery)
+  );
+
   const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
-  const currentKategori = kategoriList.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(kategoriList.length / ITEMS_PER_PAGE);
+  const currentKategori = filteredKategori.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredKategori.length / ITEMS_PER_PAGE);
 
   return (
     <DashboardLayout title="Data Kategori">
-      <div className="flex justify-between items-center mb-6">
+
+      {/* Header: judul + search + tombol tambah */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Daftar Kategori</h2>
-        <button
-          onClick={() => handleOpenModal()}
-          className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
-        >
-          <Plus size={20} />
-          Tambah Kategori
-        </button>
+
+        <div className="flex items-center gap-2">
+          {/* Search bar */}
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              placeholder="Cari ID atau nama kategori..."
+              className="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none w-60"
+            />
+          </div>
+
+          <button
+            onClick={() => handleOpenModal()}
+            className="bg-primary-600 text-white px-5 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2 text-sm whitespace-nowrap"
+          >
+            <Plus size={18} />
+            Tambah Kategori
+          </button>
+        </div>
       </div>
 
       {/* Table */}
@@ -153,7 +222,9 @@ export default function KategoriPage() {
               {currentKategori.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
-                    Tidak ada data kategori
+                    {searchQuery
+                      ? `Tidak ada kategori yang cocok dengan "${searchQuery}"`
+                      : 'Tidak ada data kategori'}
                   </td>
                 </tr>
               ) : (
@@ -218,7 +289,8 @@ export default function KategoriPage() {
             <h3 className="text-xl font-bold mb-4">
               {editMode ? 'Edit Kategori' : 'Tambah Kategori Baru'}
             </h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
+
               {editMode && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">ID Kategori</label>
@@ -232,6 +304,7 @@ export default function KategoriPage() {
                 </div>
               )}
 
+              {/* Nama Kategori */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nama Kategori <span className="text-red-500">*</span>
@@ -239,14 +312,21 @@ export default function KategoriPage() {
                 <input
                   type="text"
                   value={formData.nama_kategori}
-                  onChange={(e) => setFormData({ ...formData, nama_kategori: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                  onChange={(e) => {
+                    setFormData({ ...formData, nama_kategori: e.target.value });
+                    setFormErrors((prev) => ({ ...prev, nama_kategori: undefined }));
+                  }}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${
+                    formErrors.nama_kategori ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                  }`}
                   placeholder="Masukkan nama kategori"
-                  required
                 />
+                {formErrors.nama_kategori && (
+                  <p className="text-xs text-red-600 mt-1">⚠ {formErrors.nama_kategori}</p>
+                )}
               </div>
 
-              {/* Bobot Field */}
+              {/* Bobot */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Bobot <span className="text-red-500">*</span>
@@ -270,16 +350,17 @@ export default function KategoriPage() {
                         name="bobot"
                         value={opt.value}
                         checked={formData.bobot_default === opt.value}
-                       onChange={() => setFormData({ ...formData, bobot_default: opt.value })}
+                        onChange={() => {
+                          setFormData({ ...formData, bobot_default: opt.value });
+                          setFormErrors((prev) => ({ ...prev, bobot_default: undefined }));
+                        }}
                         className="accent-primary-600"
                       />
                       <span className={`text-sm font-medium ${
                         formData.bobot_default === opt.value
-                          ? opt.value === 1
-                            ? 'text-green-700'
-                            : opt.value === 2
-                            ? 'text-yellow-700'
-                            : 'text-red-700'
+                          ? opt.value === 1 ? 'text-green-700'
+                          : opt.value === 2 ? 'text-yellow-700'
+                          : 'text-red-700'
                           : 'text-gray-700'
                       }`}>
                         {opt.label}
@@ -287,6 +368,9 @@ export default function KategoriPage() {
                     </label>
                   ))}
                 </div>
+                {formErrors.bobot_default && (
+                  <p className="text-xs text-red-600 mt-1">⚠ {formErrors.bobot_default}</p>
+                )}
               </div>
 
               <div className="flex gap-3 pt-2">

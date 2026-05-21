@@ -1,21 +1,42 @@
-// src/app/data-aturan/gejala/page.tsx
 'use client';
 import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search } from 'lucide-react';
 import DashboardLayout from '@/components/dashboard-layout';
 import GejalaService from '@/services/gejala-service';
-import { Gejala, JenisMotor } from '@/types';
-import { JENIS_MOTOR } from '@/utils/constants';
+import JenisMotorService from '@/services/jenis-montor-service'; // ← import baru
+import { Gejala, JenisMotor } from '@/types';                  // ← tambah JenisMotor
 import toast from 'react-hot-toast';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import KategoriService, { Kategori } from '@/services/kategori-service';
 
 interface FormData {
   nama_gejala: string;
-  jenis_motor: JenisMotor;
+  jenis_motor_id: number;  // ← ganti dari string
   kategori_id: number;
   bobot: number;
 }
+
+interface FormErrors {
+  nama_gejala?: string;
+  kategori_id?: string;
+  bobot?: string;
+}
+
+const validateForm = (data: FormData): FormErrors => {
+  const errors: FormErrors = {};
+  if (!data.nama_gejala.trim()) {
+    errors.nama_gejala = 'Nama gejala tidak boleh kosong';
+  } else if (data.nama_gejala.trim().length < 5) {
+    errors.nama_gejala = 'Nama gejala minimal 5 karakter';
+  }
+  if (!data.kategori_id || data.kategori_id === 0) {
+    errors.kategori_id = 'Kategori harus dipilih';
+  }
+  if (!data.bobot || ![1, 2, 3].includes(Number(data.bobot))) {
+    errors.bobot = 'Bobot harus dipilih';
+  }
+  return errors;
+};
 
 export default function GejalaPage() {
   const [gejalaList, setGejalaList] = useState<Gejala[]>([]);
@@ -23,24 +44,42 @@ export default function GejalaPage() {
   const [showModal, setShowModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedGejala, setSelectedGejala] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<JenisMotor>('Primavera 150');
+  const [activeTab, setActiveTab] = useState<number>(0);           // ← pakai id (number)
+  const [jenisMotorList, setJenisMotorList] = useState<JenisMotor[]>([]); // ← state baru
   const [kategoriList, setKategoriList] = useState<Kategori[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingKode, setDeletingKode] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
   const ITEMS_PER_PAGE = 5;
 
   const [formData, setFormData] = useState<FormData>({
     nama_gejala: '',
-    jenis_motor: 'Primavera 150',
+    jenis_motor_id: 0,  // ← ganti
     kategori_id: 0,
     bobot: 2,
   });
 
   useEffect(() => {
+    fetchJenisMotor();
     fetchGejala();
     fetchKategori();
   }, []);
+
+  // ── Fetch jenis motor dari API (dinamis) ──
+  const fetchJenisMotor = async () => {
+    try {
+      const data = await JenisMotorService.getAll();
+      setJenisMotorList(data);
+      if (data.length > 0) {
+        setActiveTab(data[0].id_jenis_motor); // tab pertama otomatis aktif
+        setFormData((prev) => ({ ...prev, jenis_motor_id: data[0].id_jenis_motor }));
+      }
+    } catch {
+      toast.error('Gagal memuat jenis motor');
+    }
+  };
 
   const fetchKategori = async () => {
     try {
@@ -65,12 +104,13 @@ export default function GejalaPage() {
   };
 
   const handleOpenModal = (gejala?: Gejala) => {
+    setFormErrors({});
     if (gejala) {
       setEditMode(true);
       setSelectedGejala(gejala.kode_gejala);
       setFormData({
         nama_gejala: gejala.nama_gejala ?? '',
-        jenis_motor: (gejala.jenis_motor as JenisMotor) ?? 'Primavera 150',
+        jenis_motor_id: gejala.jenis_motor_id ?? activeTab,  // ← ganti
         kategori_id: gejala.kategori_id ?? 0,
         bobot: Number(gejala.bobot) || 2,
       });
@@ -78,7 +118,7 @@ export default function GejalaPage() {
       setEditMode(false);
       setFormData({
         nama_gejala: '',
-        jenis_motor: activeTab,
+        jenis_motor_id: activeTab,  // ← otomatis pakai tab aktif (id)
         kategori_id: 0,
         bobot: 2,
       });
@@ -89,21 +129,19 @@ export default function GejalaPage() {
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedGejala('');
+    setFormErrors({});
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const errors = validateForm(formData);
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
     const loadingToast = toast.loading(editMode ? 'Mengupdate gejala...' : 'Menambahkan gejala...');
-
     try {
-      const bobot = Number(formData.bobot);
-      if (![1, 2, 3].includes(bobot)) {
-        toast.error('Bobot tidak valid. Pilih Ringan, Sedang, atau Berat.', { id: loadingToast });
-        return;
-      }
-
-      const payload = { ...formData, bobot };
-
+      const payload = { ...formData, bobot: Number(formData.bobot) };
       if (editMode) {
         await GejalaService.update(selectedGejala, payload);
         toast.success('Gejala berhasil diupdate', { id: loadingToast });
@@ -143,50 +181,74 @@ export default function GejalaPage() {
     setDeletingKode('');
   };
 
-  const handleTabChange = (jenis: JenisMotor) => {
-    setActiveTab(jenis);
+  const handleTabChange = (id: number) => {
+    setActiveTab(id);
     setCurrentPage(1);
+    setSearchQuery('');
   };
 
-  const filteredGejala = gejalaList.filter(g => g.jenis_motor === activeTab);
+  // ── Filter pakai id bukan nama string ──
+  const filteredGejala = gejalaList
+    .filter((g) => g.jenis_motor_id === activeTab)
+    .filter((g) =>
+      searchQuery.trim() === '' ||
+      g.nama_gejala?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      g.kode_gejala?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
   const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
   const currentGejala = filteredGejala.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredGejala.length / ITEMS_PER_PAGE);
 
+  // Helper: ambil nama motor aktif untuk ditampilkan di modal
+  const activeMotorName = jenisMotorList.find((j) => j.id_jenis_motor === activeTab)?.nama_motor ?? '';
+
   return (
     <DashboardLayout title="Data Gejala">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Daftar Gejala</h2>
-        <button
-          onClick={() => handleOpenModal()}
-          className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
-        >
-          <Plus size={20} />
-          Tambah Gejala
-        </button>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Daftar Gejala</h2>
+        <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2">
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              placeholder="Cari kode atau nama gejala..."
+              className="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none w-full xs:w-56 sm:w-64"
+            />
+          </div>
+          <button
+            onClick={() => handleOpenModal()}
+            className="bg-primary-600 text-white px-5 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 text-sm whitespace-nowrap"
+          >
+            <Plus size={18} />
+            Tambah Gejala
+          </button>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="-mb-px flex space-x-8">
-          {(JENIS_MOTOR as readonly JenisMotor[]).map((jenis) => (
+      {/* ── Tabs: render dari jenisMotorList (dinamis) ── */}
+      <div className="border-b border-gray-200 mb-6 overflow-x-auto">
+        <nav className="-mb-px flex space-x-4 sm:space-x-8 min-w-max">
+          {jenisMotorList.map((jm) => (
             <button
-              key={jenis}
-              onClick={() => handleTabChange(jenis)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === jenis
+              key={jm.id_jenis_motor}
+              onClick={() => handleTabChange(jm.id_jenis_motor)}
+              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
+                activeTab === jm.id_jenis_motor
                   ? 'border-primary-600 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              {jenis}
+              {jm.nama_motor}
             </button>
           ))}
         </nav>
       </div>
 
-      {/* Table */}
+      {/* Table — sama seperti sebelumnya, tidak ada perubahan */}
       {loading ? (
         <div className="flex flex-col justify-center items-center h-64 gap-3">
           <img src="/asset/load.png" alt="Loading" className="w-44 h-28 animate-pulse" />
@@ -194,220 +256,167 @@ export default function GejalaPage() {
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kode</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Gejala</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategori</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Bobot</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {currentGejala.length === 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                    Tidak ada data gejala untuk {activeTab}
-                  </td>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kode</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Gejala</th>
+                  <th className="hidden md:table-cell px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategori</th>
+                  <th className="px-4 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Bobot</th>
+                  <th className="px-4 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Aksi</th>
                 </tr>
-              ) : (
-                currentGejala.map((gejala) => (
-                  <tr key={gejala.kode_gejala} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{gejala.kode_gejala}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{gejala.nama_gejala}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {gejala.kategori?.nama_kategori || '—'}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-center">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        gejala.bobot === 3 ? 'bg-red-100 text-red-700' :
-                        gejala.bobot === 2 ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-green-100 text-green-700'
-                      }`}>
-                        {gejala.bobot === 3 ? 'Berat' : gejala.bobot === 2 ? 'Sedang' : 'Ringan'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-center">
-                      <div className="flex justify-center gap-2">
-                        <button onClick={() => handleOpenModal(gejala)} className="text-primary-600 hover:text-primary-800">
-                          <Pencil size={18} />
-                        </button>
-                        <button onClick={() => handleDelete(gejala.kode_gejala)} className="text-red-600 hover:text-red-800">
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {currentGejala.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                      {searchQuery
+                        ? `Tidak ada gejala yang cocok dengan "${searchQuery}"`
+                        : `Tidak ada data gejala untuk ${activeMotorName}`}
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  currentGejala.map((gejala) => (
+                    <tr key={gejala.kode_gejala} className="hover:bg-gray-50">
+                      <td className="px-4 sm:px-6 py-4 text-sm font-medium text-gray-900">{gejala.kode_gejala}</td>
+                      <td className="px-4 sm:px-6 py-4 text-sm text-gray-900">
+                        <span className="line-clamp-2">{gejala.nama_gejala}</span>
+                        {gejala.kategori?.nama_kategori && (
+                          <span className="md:hidden mt-1 inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                            {gejala.kategori.nama_kategori}
+                          </span>
+                        )}
+                      </td>
+                      <td className="hidden md:table-cell px-4 sm:px-6 py-4 text-sm text-gray-500">
+                        {gejala.kategori?.nama_kategori || '—'}
+                      </td>
+                      <td className="px-4 sm:px-6 py-4 text-sm text-center">
+                        <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${
+                          gejala.bobot === 3 ? 'bg-red-100 text-red-700' :
+                          gejala.bobot === 2 ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-green-100 text-green-700'
+                        }`}>
+                          {gejala.bobot === 3 ? 'Berat' : gejala.bobot === 2 ? 'Sedang' : 'Ringan'}
+                        </span>
+                      </td>
+                      <td className="px-4 sm:px-6 py-4 text-sm text-center">
+                        <div className="flex justify-center gap-2">
+                          <button onClick={() => handleOpenModal(gejala)} className="text-primary-600 hover:text-primary-800 p-1 hover:bg-primary-50 rounded transition-colors">
+                            <Pencil size={17} />
+                          </button>
+                          <button onClick={() => handleDelete(gejala.kode_gejala)} className="text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded transition-colors">
+                            <Trash2 size={17} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
-      {/* Pagination */}
+      {/* Pagination — sama */}
       {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-4">
-          <button
-            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
-          >
-            Prev
-          </button>
+        <div className="flex justify-center items-center gap-2 mt-4 flex-wrap">
+          <button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1} className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50">Prev</button>
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <button
-              key={page}
-              onClick={() => setCurrentPage(page)}
-              className={`px-3 py-1 rounded ${
-                page === currentPage ? 'bg-primary-600 text-white' : 'bg-gray-200 hover:bg-gray-300'
-              }`}
-            >
-              {page}
-            </button>
+            <button key={page} onClick={() => setCurrentPage(page)} className={`px-3 py-1 rounded ${page === currentPage ? 'bg-primary-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>{page}</button>
           ))}
-          <button
-            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
-          >
-            Next
-          </button>
+          <button onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages} className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50">Next</button>
         </div>
       )}
 
       {/* Modal Tambah/Edit */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full max-h-screen overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4">
-              {editMode ? 'Edit Gejala' : 'Tambah Gejala Baru'}
-            </h3>
-            <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 sm:p-8 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold mb-4">{editMode ? 'Edit Gejala' : 'Tambah Gejala Baru'}</h3>
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
 
-              {/* Kode Gejala (edit mode only) */}
               {editMode && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Kode Gejala</label>
-                  <input
-                    type="text"
-                    value={selectedGejala}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100"
-                  />
+                  <input type="text" value={selectedGejala} disabled className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100" />
                   <p className="text-xs text-gray-500 mt-1">Kode otomatis saat dibuat, tidak dapat diubah</p>
                 </div>
               )}
 
-              {/* Nama Gejala */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nama Gejala <span className="text-red-500">*</span>
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nama Gejala <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   value={formData.nama_gejala}
-                  onChange={(e) => setFormData({ ...formData, nama_gejala: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                  onChange={(e) => { setFormData({ ...formData, nama_gejala: e.target.value }); setFormErrors((p) => ({ ...p, nama_gejala: undefined })); }}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${formErrors.nama_gejala ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                   placeholder="Masukkan nama gejala"
-                  required
                 />
+                {formErrors.nama_gejala && <p className="text-xs text-red-600 mt-1">⚠ {formErrors.nama_gejala}</p>}
               </div>
 
-              {/* Jenis Motor */}
+              {/* ── Jenis Motor: tampil nama, value pakai id ── */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Jenis Motor <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.jenis_motor}
-                  onChange={(e) => setFormData({ ...formData, jenis_motor: e.target.value as JenisMotor })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
-                  required
-                  disabled={editMode}
-                >
-                  {(JENIS_MOTOR as readonly JenisMotor[]).map((jenis) => (
-                    <option key={jenis} value={jenis}>{jenis}</option>
-                  ))}
-                </select>
-                {editMode && (
-                  <p className="text-xs text-gray-500 mt-1">Jenis motor tidak dapat diubah setelah dibuat</p>
-                )}
+                <label className="block text-sm font-medium text-gray-700 mb-1">Jenis Motor</label>
+                <input
+                  type="text"
+                  value={jenisMotorList.find((j) => j.id_jenis_motor === formData.jenis_motor_id)?.nama_motor ?? ''}
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+                />
+                <p className="text-xs text-gray-500 mt-1">Jenis motor mengikuti tab yang sedang aktif dan tidak dapat diubah</p>
               </div>
 
-              {/* Kategori — dipindah ke atas Bobot */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Kategori <span className="text-red-500">*</span>
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Kategori <span className="text-red-500">*</span></label>
                 <select
                   value={formData.kategori_id}
                   onChange={(e) => {
                     const selectedId = Number(e.target.value);
-                    const selectedKategori = kategoriList.find(k => k.id === selectedId);
-                    setFormData({
-                      ...formData,
-                      kategori_id: selectedId,
-                      // ✅ auto-fill bobot dari bobot_default kategori
-                      bobot: selectedKategori?.bobot_default ?? formData.bobot,
-                    });
+                    const selectedKategori = kategoriList.find((k) => k.id === selectedId);
+                    setFormData({ ...formData, kategori_id: selectedId, bobot: selectedKategori?.bobot_default ?? formData.bobot });
+                    setFormErrors((p) => ({ ...p, kategori_id: undefined }));
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  required
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${formErrors.kategori_id ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                 >
-                  <option value="">-- Pilih Kategori --</option>
+                  <option value={0}>-- Pilih Kategori --</option>
                   {kategoriList.map((k) => (
                     <option key={k.id} value={k.id}>
                       {k.nama_kategori} (Bobot default: {k.bobot_default === 3 ? 'Berat' : k.bobot_default === 2 ? 'Sedang' : 'Ringan'})
                     </option>
                   ))}
                 </select>
+                {formErrors.kategori_id && <p className="text-xs text-red-600 mt-1">⚠ {formErrors.kategori_id}</p>}
               </div>
 
-              {/* Bobot — ter-isi otomatis, bisa diubah manual */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Bobot Gejala <span className="text-red-500">*</span>
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Bobot Gejala <span className="text-red-500">*</span></label>
                 <select
                   value={formData.bobot}
-                  onChange={(e) => setFormData({ ...formData, bobot: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  required
+                  onChange={(e) => { setFormData({ ...formData, bobot: Number(e.target.value) }); setFormErrors((p) => ({ ...p, bobot: undefined })); }}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${formErrors.bobot ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                 >
-                  <option value="">-- Pilih Bobot --</option>
+                  <option value={0}>-- Pilih Bobot --</option>
                   <option value={3}>Berat (Risiko tinggi)</option>
                   <option value={2}>Sedang (Gangguan performa)</option>
                   <option value={1}>Ringan (Indikasi awal)</option>
                 </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Terisi otomatis dari kategori, bisa diubah manual jika diperlukan
-                </p>
+                {formErrors.bobot && <p className="text-xs text-red-600 mt-1">⚠ {formErrors.bobot}</p>}
+                <p className="text-xs text-gray-500 mt-1">Terisi otomatis dari kategori, bisa diubah manual jika diperlukan</p>
               </div>
 
-              {/* Tombol Aksi */}
-              <div className="flex gap-3">
-                <button
-                  type="submit"
-                  className="flex-1 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors"
-                >
-                  {editMode ? 'Update' : 'Simpan'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition-colors"
-                >
-                  Batal
-                </button>
+              <div className="flex gap-3 pt-2">
+                <button type="submit" className="flex-1 bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors">{editMode ? 'Update' : 'Simpan'}</button>
+                <button type="button" onClick={handleCloseModal} className="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition-colors">Batal</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Modal Konfirmasi Hapus */}
+      {/* Modal Hapus — sama */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full mx-4 p-6">
@@ -417,23 +426,11 @@ export default function GejalaPage() {
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Hapus Gejala Ini?</h3>
               <p className="text-sm text-gray-600 mb-6">
-                Apakah Anda yakin ingin menghapus gejala{' '}
-                <span className="font-medium text-gray-900">{deletingKode}</span>?
-                Tindakan ini tidak dapat dibatalkan.
+                Apakah Anda yakin ingin menghapus gejala <span className="font-medium text-gray-900">{deletingKode}</span>? Tindakan ini tidak dapat dibatalkan.
               </p>
               <div className="flex gap-3 w-full">
-                <button
-                  onClick={cancelDelete}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
-                >
-                  Ya, Hapus
-                </button>
+                <button onClick={cancelDelete} className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">Batal</button>
+                <button onClick={confirmDelete} className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors">Ya, Hapus</button>
               </div>
             </div>
           </div>

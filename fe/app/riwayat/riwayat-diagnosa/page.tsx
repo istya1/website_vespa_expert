@@ -31,30 +31,30 @@ interface ExtendedDiagnosa extends Omit<Diagnosa, 'jenis_motor'> {
 }
 
 const MOTOR_COLORS: Record<string, string> = {
-  'Sprint 150':      '#3b82f6',
-  'Sprint S 150':    '#6366f1',
-  'LX 125':          '#10b981',
-  'Primavera 150':   '#f59e0b',
+  'Sprint 150': '#3b82f6',
+  'Sprint S 150': '#6366f1',
+  'LX 125': '#10b981',
+  'Primavera 150': '#f59e0b',
   'Primavera S 150': '#ef4444',
 };
 
-const BULAN_LABEL = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+const BULAN_LABEL = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
 const MOTOR_LIST = ['Semua', 'Sprint 150', 'Sprint S 150', 'LX 125', 'Primavera 150', 'Primavera S 150'];
 
 export default function DiagnosaPage() {
-  const [diagnosaList, setDiagnosaList]   = useState<ExtendedDiagnosa[]>([]);
-  const [loading, setLoading]             = useState(true);
+  const [diagnosaList, setDiagnosaList] = useState<ExtendedDiagnosa[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteId, setDeleteId]           = useState<number | null>(null);
-  const [statistik, setStatistik]         = useState<any>(null);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [statistik, setStatistik] = useState<any>(null);
 
   // Filter state
-  const [searchTerm, setSearchTerm]       = useState('');
-  const [filterMotor, setFilterMotor]     = useState('Semua');
-  const [filterBulan, setFilterBulan]     = useState('');
-  const [filterTahun, setFilterTahun]     = useState(new Date().getFullYear().toString());
-  const [currentPage, setCurrentPage]     = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterMotor, setFilterMotor] = useState('Semua');
+  const [filterBulan, setFilterBulan] = useState('');
+  const [filterTahun, setFilterTahun] = useState(new Date().getFullYear().toString());
+  const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
   const fetchStatistik = async () => {
@@ -108,7 +108,7 @@ export default function DiagnosaPage() {
     if (!d) return '-';
     const date = new Date(d);
     if (isNaN(date.getTime())) return '-';
-    return date.toLocaleString('id-ID', { day:'2-digit', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    return date.toLocaleString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
   };
 
   const exportPDF = () => {
@@ -128,8 +128,8 @@ export default function DiagnosaPage() {
         <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:12px">${d.gejala?.map(g => g.nama_gejala).join(', ') || '-'}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:12px">
           ${d.hasil_diagnosis?.map(h =>
-            `${h.kerusakan?.nama_kerusakan || h.kode_kerusakan} (${Number(h.persentase_kecocokan || 0).toFixed(0)}%)`
-          ).join('<br/>') || '-'}
+      `${h.kerusakan?.nama_kerusakan || h.kode_kerusakan} (${Number(h.persentase_kecocokan || 0).toFixed(0)}%)`
+    ).join('<br/>') || '-'}
         </td>
       </tr>
     `).join('');
@@ -200,7 +200,7 @@ export default function DiagnosaPage() {
         </table>
 
         <div class="footer">
-          Laporan ini dibuat otomatis oleh Sistem Vespa Expert &nbsp;|&nbsp; ${new Date().toLocaleDateString('id-ID', { day:'2-digit', month:'long', year:'numeric' })}
+          Laporan ini dibuat otomatis oleh Sistem Vespa Expert &nbsp;|&nbsp; ${new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}
         </div>
       </body>
       </html>
@@ -318,7 +318,7 @@ export default function DiagnosaPage() {
       const matchBulan = !filterBulan || (() => {
         const date = new Date(d.created_at);
         return date.getMonth() === parseInt(filterBulan) - 1 &&
-               date.getFullYear() === parseInt(filterTahun);
+          date.getFullYear() === parseInt(filterTahun);
       })();
 
       return matchSearch && matchMotor && matchBulan;
@@ -347,13 +347,7 @@ export default function DiagnosaPage() {
               Analisis pola kerusakan, tren diagnosa per bulan, dan distribusi per jenis motor
             </p>
           </div>
-          <button
-            onClick={exportPDF}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm shrink-0"
-          >
-            <FileDown size={16} />
-            Export PDF
-          </button>
+
         </div>
       </div>
 
@@ -388,7 +382,7 @@ export default function DiagnosaPage() {
                 bg: 'bg-red-50', border: 'border-red-100',
               },
               {
-                label: 'Pengguna Unik',
+                label: 'Pengguna',
                 value: summaryStats.userUnik,
                 icon: <Users size={20} className="text-emerald-600" />,
                 bg: 'bg-emerald-50', border: 'border-emerald-100',
@@ -411,20 +405,22 @@ export default function DiagnosaPage() {
             {/* Tren diagnosa per bulan per motor */}
             <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
-                <div>
+                <div className="flex flex-col justify-center">
                   <h3 className="font-semibold text-gray-800">Tren Diagnosa Per Bulan</h3>
                   <p className="text-xs text-gray-400">Jumlah diagnosa per jenis motor tiap bulan</p>
                 </div>
-                <select
-                  value={filterTahun}
-                  onChange={e => setFilterTahun(e.target.value)}
-                  className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                >
-                  {tahunList.length > 0
-                    ? tahunList.map(y => <option key={y} value={y}>{y}</option>)
-                    : <option value={new Date().getFullYear()}>{new Date().getFullYear()}</option>
-                  }
-                </select>
+                <div className="flex items-center">
+                  <select
+                    value={filterTahun}
+                    onChange={e => setFilterTahun(e.target.value)}
+                    className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  >
+                    {tahunList.length > 0
+                      ? tahunList.map(y => <option key={y} value={y}>{y}</option>)
+                      : <option value={new Date().getFullYear()}>{new Date().getFullYear()}</option>
+                    }
+                  </select>
+                </div>
               </div>
               <ResponsiveContainer width="100%" height={240}>
                 <LineChart data={chartTrenBulanan}>
@@ -449,7 +445,7 @@ export default function DiagnosaPage() {
             </div>
 
             {/* Kerusakan terbanyak — filter per motor */}
-            <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
+            {/* <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="font-semibold text-gray-800">Kerusakan Terbanyak</h3>
@@ -478,7 +474,7 @@ export default function DiagnosaPage() {
                   />
                 </BarChart>
               </ResponsiveContainer>
-            </div>
+            </div> */}
 
             {/* Kerusakan per motor (grouped bar) — full width */}
             <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm lg:col-span-2">
@@ -505,15 +501,30 @@ export default function DiagnosaPage() {
           <div className="bg-white border border-gray-100 rounded-xl shadow-sm overflow-hidden">
             <div className="p-5 border-b border-gray-100">
               <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-                <h3 className="font-semibold text-gray-800">
+
+                {/* Judul */}
+                <h3 className="font-semibold text-gray-800 shrink-0">
                   Detail Riwayat Diagnosa
                   <span className="ml-2 text-xs font-normal text-gray-400">
                     ({filteredDiagnosa.length} data)
                   </span>
                 </h3>
-                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+
+                {/* Kontrol kanan */}
+                <div className="flex flex-wrap gap-2 items-center w-full sm:w-auto">
+
+                  {/* Export PDF */}
+                  <button
+                    onClick={exportPDF}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm shrink-0"
+                  >
+                    <FileDown size={16} />
+                    Export PDF
+                  </button>
+
                   {/* Search */}
-                  <div className="relative flex-1 sm:flex-none sm:w-52">
+                  <div className="relative w-full sm:w-52">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
                     <input
                       type="text"
                       placeholder="Cari user / kerusakan..."
@@ -521,7 +532,6 @@ export default function DiagnosaPage() {
                       onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                       className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                     />
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" size={15} />
                   </div>
 
                   {/* Filter motor */}
@@ -553,6 +563,7 @@ export default function DiagnosaPage() {
                   >
                     {tahunList.map(y => <option key={y} value={y}>{y}</option>)}
                   </select>
+
                 </div>
               </div>
             </div>
@@ -652,17 +663,16 @@ export default function DiagnosaPage() {
                   {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
                     const page = totalPages <= 7 ? i + 1
                       : currentPage <= 4 ? i + 1
-                      : currentPage >= totalPages - 3 ? totalPages - 6 + i
-                      : currentPage - 3 + i;
+                        : currentPage >= totalPages - 3 ? totalPages - 6 + i
+                          : currentPage - 3 + i;
                     return (
                       <button
                         key={page}
                         onClick={() => setCurrentPage(page)}
-                        className={`min-w-[32px] h-8 rounded-lg text-sm font-medium transition-colors ${
-                          page === currentPage
-                            ? 'bg-blue-600 text-white'
-                            : 'border border-gray-200 hover:bg-gray-50 text-gray-600'
-                        }`}
+                        className={`min-w-[32px] h-8 rounded-lg text-sm font-medium transition-colors ${page === currentPage
+                          ? 'bg-blue-600 text-white'
+                          : 'border border-gray-200 hover:bg-gray-50 text-gray-600'
+                          }`}
                       >
                         {page}
                       </button>

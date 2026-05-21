@@ -3,9 +3,8 @@ import ApiService from './api-service';
 import { Kerusakan, ApiResponse } from '@/types';
 
 class KerusakanService {
-  async getAll(jenisMotor?: string): Promise<Kerusakan[]> {
-    const params = jenisMotor ? `?jenis_motor=${jenisMotor}` : '';
-    return await ApiService.get<Kerusakan[]>(`/kerusakan${params}`);
+   async getAll(): Promise<Kerusakan[]> {
+    return await ApiService.get('/kerusakan');
   }
 
   async getById(kode: string): Promise<Kerusakan> {

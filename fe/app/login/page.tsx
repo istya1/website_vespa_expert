@@ -1,89 +1,90 @@
-// src/app/login/page.tsx
-'use client';                   
+'use client';
+import { useState, useEffect, FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import AuthService from '@/services/auth-service';
+import toast from 'react-hot-toast';
+import Cookies from 'js-cookie';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
-import { useState, useEffect, FormEvent } from 'react';   
-import { useRouter } from 'next/navigation';            
-import Link from 'next/link';                           
-import AuthService from '@/services/auth-service';       
-import toast from 'react-hot-toast';                     
-import Cookies from 'js-cookie';                         
-
-// Komponen utama halaman Login
 export default function LoginPage() {
+  const router = useRouter();
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const router = useRouter();                            // Inisialisasi router untuk melakukan redirect
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [generalError, setGeneralError] = useState('');
 
-  // State untuk mengelola input form
-  const [email, setEmail] = useState('');                // Menyimpan nilai email yang diinput user
-  const [password, setPassword] = useState('');          // Menyimpan nilai password yang diinput user
-  const [loading, setLoading] = useState(false);         // State untuk mengontrol tombol loading saat proses login
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  /**
-   * Fungsi yang dijalankan ketika form login disubmit
-   */
+  const validate = (): boolean => {
+    let valid = true;
+    setEmailError('');
+    setPasswordError('');
+    setGeneralError('');
+
+    if (!email.trim()) {
+      setEmailError('Email tidak boleh kosong');
+      valid = false;
+    } else if (!emailRegex.test(email)) {
+      setEmailError('Format email tidak valid');
+      valid = false;
+    }
+
+    if (!password.trim()) {                    // ← Hanya cek kosong
+      setPasswordError('Password tidak boleh kosong');
+      valid = false;
+    }
+
+    return valid;
+  };
+
   const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();                                  // Mencegah perilaku default form (reload halaman)
-    setLoading(true);                                    // Aktifkan indikator loading
+    e.preventDefault();
+    if (!validate()) return;
+
+    setLoading(true);
+    setGeneralError('');
 
     try {
-      // Panggil API login melalui AuthService
       const response = await AuthService.login(email, password);
 
-      // 🔐 Security: Hanya izinkan role admin atau superadmin masuk ke dashboard ini
       if (response.role !== 'admin' && response.role !== 'superadmin') {
-        toast.error('Akses hanya untuk admin');          // Tampilkan pesan error
-        setLoading(false);
+        toast.error('Akses hanya untuk admin');
         return;
       }
 
-      toast.success('Login berhasil!');                  // Tampilkan notifikasi sukses
-      router.push('/dashboard');                         // Redirect ke halaman dashboard setelah login sukses
+      toast.success('Login berhasil!');
+      router.push('/dashboard');
     } catch (err: any) {
-      // Tangani error dari backend atau jaringan
-      toast.error(err.message || 'Login gagal. Silakan coba lagi.');
+      setGeneralError('Email atau password salah');
     } finally {
-      setLoading(false);                                 // Matikan loading di akhir proses (baik sukses maupun gagal)
+      setLoading(false);
     }
   };
 
-  /**
-   * useEffect ini berjalan sekali saat halaman login dimuat
-   * Tujuannya: Membersihkan data login lama agar user harus login ulang
-   */
   useEffect(() => {
-    // Paksa logout / bersihkan sesi lama saat membuka halaman login
-    Cookies.remove('token');                             // Hapus token dari cookies
-    localStorage.removeItem('token');                    // Hapus token dari localStorage
-    localStorage.removeItem('user');                     // Hapus data user dari localStorage
-  }, []);                                                // Dependency array kosong = hanya dijalankan 1x saat mount
+    Cookies.remove('token');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-600 to-primary-800 flex items-center justify-center p-4">
-      
-      {/* Card Login */}
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-3">
-
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-8">
         {/* Logo */}
         <div className="flex justify-center mb-2">
-          <img
-            src="/asset/logo.png"
-            alt="Vespa Expert Logo"
-            className="w-24 h-24 object-contain"
-          />
+          <img src="/asset/logo.png" alt="Vespa Expert Logo" className="w-24 h-24 object-contain" />
         </div>
+        <h1 className="text-2xl font-bold text-center text-gray-800 mb-2">Vespa Matic Expert</h1>
+        <p className="text-center text-gray-600 mb-8">Silakan login untuk melanjutkan</p>
 
-        {/* Judul Aplikasi */}
-        <h1 className="text-2xl font-bold text-center text-gray-800 mb-2">
-          Vespa Matic Expert
-        </h1>
-        <p className="text-center text-gray-600 mb-8">
-          Silahkan login untuk melanjutkan
-        </p>
-
-        {/* Form Login */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-
-          {/* Input Email */}
+        <form onSubmit={handleSubmit} noValidate className="space-y-6">
+          {/* Email */}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
               Email <span className="text-red-500">*</span>
@@ -91,41 +92,75 @@ export default function LoginPage() {
             <input
               id="email"
               type="email"
-              value={email}                                    // Binding dua arah dengan state email
-              onChange={(e) => setEmail(e.target.value)}       // Update state setiap user mengetik
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setEmailError('');
+                setGeneralError('');
+              }}
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition ${
+                emailError ? 'border-red-500 bg-red-50' : 'border-gray-300'
+              }`}
               placeholder="admin@vespa.com"
-              required
             />
+            {emailError && <p className="mt-1 text-sm text-red-600">⚠ {emailError}</p>}
           </div>
 
-          {/* Input Password */}
+          {/* Password */}
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
               Password <span className="text-red-500">*</span>
             </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
-              placeholder="Masukkan password"
-              required
-            />
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setPasswordError('');
+                  setGeneralError('');
+                }}
+                className={`w-full px-4 py-3 pr-12 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition ${
+                  passwordError ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                }`}
+                placeholder="Masukkan password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
+            {passwordError && <p className="mt-1 text-sm text-red-600">⚠ {passwordError}</p>}
           </div>
 
-          {/* Tombol Login */}
+          {/* General Error */}
+          {generalError && (
+            <p className="text-sm text-red-600 text-center bg-red-50 py-2 rounded-lg">
+              ⚠ {generalError}
+            </p>
+          )}
+
+          {/* Button Login */}
           <button
             type="submit"
-            disabled={loading}                                 // Tombol disable saat proses loading
-            className="w-full bg-primary-600 text-white py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled={loading}
+            className="w-full bg-primary-600 text-white py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors disabled:bg-primary-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {loading ? 'Loading...' : 'Login'}                
+            {loading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Memproses...
+              </>
+            ) : (
+              'Login'
+            )}
           </button>
         </form>
 
-        {/* Link ke Halaman Register */}
         <p className="text-center text-sm text-gray-600 mt-6">
           Belum punya akun?{' '}
           <Link href="/register" className="text-primary-600 hover:text-primary-700 font-semibold">
@@ -133,9 +168,8 @@ export default function LoginPage() {
           </Link>
         </p>
 
-        {/* Footer */}
         <p className="text-center text-sm text-gray-500 mt-8">
-          © 2026 Vespa Matic Expert. All rights reserved.
+          © 2026 Vespa Matic Expert.
         </p>
       </div>
     </div>

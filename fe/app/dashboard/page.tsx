@@ -55,6 +55,7 @@ export default function DashboardPage() {
       if (!isAuth) {
         router.replace('/login');
         return;
+
       }
 
       try {
@@ -71,24 +72,24 @@ export default function DashboardPage() {
         try {
           const gejala = await GejalaService.getAll();
           totalGejala = gejala?.length || 0;
-        } catch {}
+        } catch { }
 
         try {
           const kerusakan = await KerusakanService.getAll();
           totalKerusakan = kerusakan?.length || 0;
-        } catch {}
+        } catch { }
 
         try {
           monthlyStats = await UserService.getMonthlyUserStats();
-        } catch {}
+        } catch { }
 
         try {
           totalPengguna = await UserService.count();
-        } catch {}
+        } catch { }
 
         try {
           recentUsersData = await UserService.getRecent(5);
-        } catch {}
+        } catch { }
 
         setRecentUsers(recentUsersData);
 
@@ -197,7 +198,8 @@ export default function DashboardPage() {
           <div className="bg-white p-4 rounded-xl shadow">
             <div className="flex justify-between items-center mb-3">
               <h3 className="font-semibold">Pengguna Terdaftar Terbaru</h3>
-              <a href="/master-data/admin" className="text-sm text-blue-500 hover:underline">
+
+              <a href="/master-data/user" className="text-sm text-blue-500 hover:underline">
                 Lihat semua →
               </a>
             </div>
@@ -256,7 +258,7 @@ export default function DashboardPage() {
             <div className="bg-white p-4 rounded-xl shadow">
               <div className="flex justify-between items-center mb-3">
                 <h3 className="font-semibold">Daftar Admin Terdaftar</h3>
-                <a href="/master-data/admin" className="text-sm text-blue-500 hover:underline">
+                <a href="/master-data/user" className="text-sm text-blue-500 hover:underline">
                   Lihat semua →
                 </a>
               </div>
@@ -286,11 +288,10 @@ export default function DashboardPage() {
                         </div>
                       </td>
                       <td className="py-2">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          admin.is_active !== false
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : 'bg-gray-100 text-gray-500'
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${admin.is_active !== false
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-gray-100 text-gray-500'
+                          }`}>
                           {admin.is_active !== false ? 'Aktif' : 'Nonaktif'}
                         </span>
                       </td>

@@ -3,22 +3,21 @@ import api from './api-service';
 export interface Gejala {
   kode_gejala: string;
   nama_gejala: string;
-  jenis_motor: string;
-  kategori_id: number;
-  bobot: number;
-
-  // relasi
-  kategori?: {
-    id: number;
-    nama_kategori: string;
+  jenis_motor_id: number;       // ← ganti dari jenis_motor: string
+  jenis_motor?: {
+    id_jenis_motor: number;
+    nama_motor: string;
   };
+  bobot: number;
+  kategori_id: number;
+  kategori?: { nama_kategori: string };
 }
 
 const GejalaService = {
   // GET ALL (optional filter jenis_motor)
- async getAll(jenis_motor?: string): Promise<Gejala[]> {
+ async getAll(jenis_motor_id?: number): Promise<Gejala[]> {
   const res = await api.get('/gejala', {
-    params: { jenis_motor }
+    params: { jenis_motor_id }
   });
   console.log('HASIL API:', res); // ← ini yang penting
   return Array.isArray(res) ? res : (res as any)?.data ?? [];
@@ -33,7 +32,7 @@ const GejalaService = {
   // CREATE
   async create(payload: {
     nama_gejala: string;
-    jenis_motor: string;
+     jenis_motor_id: number;
     kategori_id: number;
     bobot: number;
   }) {

@@ -15,26 +15,28 @@ export interface User {
   is_active?: boolean;
 }
 
+export interface JenisMotor {
+  id_jenis_motor: number;
+  nama_motor: string;
+}
+
 export interface Gejala {
   kode_gejala: string;
   nama_gejala: string;
-  jenis_motor: string;
-
-  kategori_id: number; // ✅ kirim ke backend
+  jenis_motor_id: number;
+  jenis_motor?: JenisMotor;
   bobot: number;
-
-  // ✅ relasi dari backend (optional tapi penting)
+  kategori_id: number;
   kategori?: {
-    id: number;
+    id?: number;
     nama_kategori: string;
   };
-  
 }
 
 export interface GejalaFormData {
   kode_gejala: string;
   nama_gejala: string;
-  jenis_motor: string;
+  jenis_motor_id: number;
   kategori: string;
   deskripsi?: string;
 }
@@ -45,7 +47,8 @@ export interface Kerusakan {
   kategori: string;
   keterangan: string;
   solusi: string;
-  jenis_motor: 'Primavera 150' | 'Primavera S 150' | 'LX 125' | 'Sprint 150' | 'Sprint S 150';
+  jenis_motor_id: number;      
+  jenis_motor?: JenisMotor;
   gejala?: Gejala[];
 }
 
@@ -56,9 +59,14 @@ export interface Solusi {
 }
 
 export interface Aturan {
- id_aturan: number;
-  kode_kerusakan: string;     
-  gejala: Gejala[];       
+  id_aturan: number;
+  kode_kerusakan: string;
+  gejala: AturanGejala[];
+  kerusakan?: Kerusakan;
+}
+
+export interface AturanGejala {
+  kode_gejala: string;
 }
 
 export interface GejalaDiagnosa {
@@ -114,7 +122,7 @@ export interface DiagnosaHasil {
   tingkat_kepastian: string;
   gejala_cocok: number;
   total_gejala_aturan: number;
-  
+
   // Relasi
   kerusakan?: Kerusakan;
 }
@@ -134,13 +142,13 @@ export interface DiagnosisResponse {
   gejala_dipilih: number;
   gejala_terpilih_list: string[];
   threshold_persen: number;
-  
+
   // Hasil diagnosis (jika selesai)
   hasil_diagnosis: DiagnosisResult[];
   total_kerusakan_ditemukan: number;
   kerusakan_utama: DiagnosisResult | null;
   kerusakan_alternatif: DiagnosisResult[];
-  
+
   // Info iterasi (jika belum selesai)
   perlu_konfirmasi: boolean;
   aturan_kandidat: AturanKandidat[];
@@ -207,20 +215,23 @@ export interface StatCardData {
   color: string;
 }
 
-export type JenisMotor = 'Primavera 150' | 'Primavera S 150' | 'LX 125' | 'Sprint 150' | 'Sprint S 150';
+
 export type KategoriPedia = 'Pengenalan' | 'Keunggulan' | 'Spesifikasi' | 'Tips';
 export type StatusPedia = 'draft' | 'published';
 
 export interface VespaPedia {
   id: number;
   judul: string;
-  jenis_motor: JenisMotor;
-  kategori: KategoriPedia;
+  jenis_motor_id: number;
+  jenis_motor?: JenisMotor;
+  kategori?: KategoriPedia;
   gambar: string | null;
   gambar_url?: string;
-  konten: string;
+  spesifikasi: string;
+  keunggulan: string;
+  tips: string;
   urutan: number;
-  status: StatusPedia;
+  status: 'draft' | 'published';
   created_at?: string;
   updated_at?: string;
 }
