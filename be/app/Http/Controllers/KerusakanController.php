@@ -1,123 +1,115 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Kerusakan;
+use App\Models\JenisMotor;
 use Illuminate\Http\Request;
 
 class KerusakanController extends Controller
 {
-    // FUNCTION: GET DATA KERUSAKAN
     public function index(Request $request)
     {
-        // Ambil parameter jenis_motor dari query URL (opsional)
-        $jenisMotor = $request->query('jenis_motor');
+        $query = Kerusakan::with('jenisMotor');
 
-        // Inisialisasi query builder
-        $query = Kerusakan::query();
-
-        // Jika ada filter jenis motor, maka tampilkan sesuai jenis tersebut
-        if ($jenisMotor) {
-            $query->where('jenis_motor', $jenisMotor);
+        if ($request->query('jenis_motor_id')) {
+            $query->where('jenis_motor_id', $request->query('jenis_motor_id'));
         }
 
-        // Ambil data kerusakan, urutkan berdasarkan kode, lalu kirim dalam bentuk JSON
-        return response()->json(
-            $query->orderBy('kode_kerusakan')->get()
-        );
+        return response()->json($query->orderBy('kode_kerusakan')->get());
     }
 
-    // FUNCTION: TAMBAH KERUSAKAN
     public function store(Request $request)
     {
-        // Validasi input dari user
-        $request->validate([
-            'nama_kerusakan' => 'required|max:100', // nama kerusakan wajib
-            'kategori' => 'required|max:50',
-            'solusi' => 'required', // solusi wajib diisi
-            'jenis_motor' => 'required|in:Primavera 150,Primavera S 150,LX 125,Sprint 150,Sprint S 150', // jenis motor harus valid
-        ]);
-
-        // Ambil jenis motor dari request
-        $jenisMotor = $request->jenis_motor;
-
-        // Menentukan prefix kode kerusakan berdasarkan jenis motor
-        // contoh: Sprint 150 → KS150
-        $prefix = match ($jenisMotor) {
-            'Sprint 150'        => 'KS150',
-            'Sprint S 150'      => 'KSS150',
-            'LX 125'            => 'KL125',
-            'Primavera 150'     => 'KP150',
-            'Primavera S 150'   => 'KPS150',
-        };
-
-        // Ambil data kerusakan terakhir berdasarkan prefix
-        $last = Kerusakan::where('kode_kerusakan', 'like', $prefix . '-%')
-            ->orderBy('kode_kerusakan', 'desc') // ambil kode terbesar
-            ->first();
-
-        // Jika ada data sebelumnya, ambil nomor terakhir lalu tambah 1
-        // Jika tidak ada, mulai dari 1
-        $number = $last
-            ? ((int) substr($last->kode_kerusakan, -2)) + 1
-            : 1;
-
-        // Format kode menjadi 2 digit (contoh: KS150-01)
-        $kode = $prefix . '-' . str_pad($number, 2, '0', STR_PAD_LEFT);
-
-        // Simpan data kerusakan ke database
-        $kerusakan = Kerusakan::create([
-            'kode_kerusakan' => $kode, // kode otomatis
-            'nama_kerusakan' => $request->nama_kerusakan,
-            'kategori'       => $request->kategori,
-            'solusi' => $request->solusi,
-            'jenis_motor' => $jenisMotor,
-        ]);
-
-        // Return response sukses
-        return response()->json([
-            'message' => 'Kerusakan berhasil ditambahkan',
-            'data' => $kerusakan
-        ], 201); // status 201 = created
-    }
-
-    // FUNCTION: UPDATE KERUSAKAN
-    public function update(Request $request, string $kode)
-    {
-        // Cari data kerusakan berdasarkan primary key (kode_kerusakan)
-        // Jika tidak ditemukan, otomatis error 404
-        $kerusakan = Kerusakan::findOrFail($kode);
-
-        // Validasi input
         $request->validate([
             'nama_kerusakan' => 'required|max:100',
             'kategori'       => 'required|max:50',
-            'solusi' => 'required',
+            'solusi'         => 'nullable|string',
+            'jenis_motor_id' => 'required|exists:jenis_motor,id_jenis_motor',
         ]);
 
-        // Update data kerusakan
-        $kerusakan->update([
+        $jenisMotor = JenisMotor::findOrFail($request->jenis_motor_id);
+
+        $codePrefix = match ($jenisMotor->nama_motor) {
+            'Sprint 150'      => 'KS150',
+            'Sprint S 150'    => 'KSS150',
+            'LX 125'          => 'KL125',
+            'Primavera 150'   => 'KP150',
+            'Primavera S 150' => 'KPS150',
+            default => 'K' . $request->jenis_motor_id,
+        };
+
+        $lastKerusakan = Kerusakan::where('kode_kerusakan', 'LIKE', $codePrefix . '-%')
+            ->orderBy('kode_kerusakan', 'desc')
+            ->first();
+
+        $newNumber = $lastKerusakan
+            ? (int) substr($lastKerusakan->kode_kerusakan, strpos($lastKerusakan->kode_kerusakan, '-') + 1) + 1
+            : 1;
+
+        $newCode = $codePrefix . '-' . str_pad($newNumber, 2, '0', STR_PAD_LEFT);
+
+        while (Kerusakan::where('kode_kerusakan', $newCode)->exists()) {
+            $newNumber++;
+            $newCode = $codePrefix . '-' . str_pad($newNumber, 2, '0', STR_PAD_LEFT);
+        }
+
+        $kerusakan = Kerusakan::create([
+            'kode_kerusakan' => $newCode,
             'nama_kerusakan' => $request->nama_kerusakan,
             'kategori'       => $request->kategori,
-            'solusi' => $request->solusi,
+            'solusi'         => $request->solusi,
+            'jenis_motor_id' => $request->jenis_motor_id,
         ]);
 
-        // Return response sukses
+        return response()->json([
+            'message' => 'Kerusakan berhasil ditambahkan',
+            'data'    => $kerusakan->load('jenisMotor'),
+        ], 201);
+    }
+
+    public function show(string $kode)
+    {
+        $kerusakan = Kerusakan::with('jenisMotor')->find($kode);
+        if (!$kerusakan) {
+            return response()->json(['message' => 'Kerusakan tidak ditemukan'], 404);
+        }
+        return response()->json($kerusakan);
+    }
+
+    public function update(Request $request, string $kode)
+    {
+        $kerusakan = Kerusakan::find($kode);
+        if (!$kerusakan) {
+            return response()->json(['message' => 'Kerusakan tidak ditemukan'], 404);
+        }
+
+        $request->validate([
+            'nama_kerusakan' => 'max:100',
+            'kategori'       => 'max:50',
+            'solusi'         => 'nullable|string',
+            'jenis_motor_id' => 'exists:jenis_motor,id_jenis_motor',
+        ]);
+
+        $kerusakan->update([
+            'nama_kerusakan' => $request->nama_kerusakan ?? $kerusakan->nama_kerusakan,
+            'kategori'       => $request->kategori       ?? $kerusakan->kategori,
+            'solusi'         => $request->solusi         ?? $kerusakan->solusi,
+            'jenis_motor_id' => $request->jenis_motor_id ?? $kerusakan->jenis_motor_id,
+        ]);
+
         return response()->json([
             'message' => 'Kerusakan berhasil diupdate',
-            'data' => $kerusakan
+            'data'    => $kerusakan->load('jenisMotor'),
         ]);
     }
 
-    // FUNCTION: HAPUS KERUSAKAN
     public function destroy(string $kode)
     {
-        // Cari data berdasarkan kode, jika tidak ada akan error 404
-        Kerusakan::findOrFail($kode)->delete();
-
-        // Return response sukses
-        return response()->json([
-            'message' => 'Kerusakan berhasil dihapus'
-        ]);
+        $kerusakan = Kerusakan::find($kode);
+        if (!$kerusakan) {
+            return response()->json(['message' => 'Kerusakan tidak ditemukan'], 404);
+        }
+        $kerusakan->delete();
+        return response()->json(['message' => 'Kerusakan berhasil dihapus']);
     }
 }

@@ -15,7 +15,7 @@ class Gejala extends Model
     protected $fillable = [
         'kode_gejala',
         'nama_gejala',
-        'jenis_motor',
+        'jenis_motor_id',
         'kategori_id',
         'bobot',
     ];
@@ -32,8 +32,13 @@ class Gejala extends Model
             'kode_kerusakan'
         );
     }
-   public function kategori()
-{
-    return $this->belongsTo(Kategori::class, 'kategori_id');
-}
+    public function kategori()
+    {
+        return $this->belongsTo(Kategori::class, 'kategori_id');
+    }
+
+    public function jenisMotor()
+    {
+        return $this->belongsTo(JenisMotor::class, 'jenis_motor_id', 'id_jenis_motor');
+    }
 }

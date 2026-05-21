@@ -22,6 +22,7 @@ use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\KendaraanController;
 use App\Http\Controllers\ServisController;
 use Illuminate\Http\Request;
+use App\Http\Controllers\JenisMotorController;
 
 Route::get('/login', function () {
     return response()->json([
@@ -65,6 +66,11 @@ Route::middleware('auth:sanctum')->group(function () {
 // Route::get('/motor-types', [ServiceController::class, 'motorTypes']);
 // Route::post('/save-km', [ServiceController::class, 'saveKm']);
 
+
+Route::get('/jenis-motor', [JenisMotorController::class, 'index']);
+Route::post('/jenis-motor', [JenisMotorController::class, 'store']);
+Route::put('/jenis-motor/{id}', [JenisMotorController::class, 'update']);
+Route::delete('/jenis-motor/{id}', [JenisMotorController::class, 'destroy']);
 /*
 |--------------------------------------------------------------------------
 | PROTECTED ROUTES
@@ -86,6 +92,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('users', UserController::class)->parameters(['users' => 'id_user']);
     Route::post('/users/{id}/change-password', [UserController::class, 'changePassword']);
 
+    // routes/api.php
+    Route::post('/test-notifikasi', [TestNotifikasiController::class, 'kirim']);
 
     // MASTER DATA
     Route::apiResource('gejala', GejalaController::class);
@@ -130,12 +138,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/proses-diagnosis', [KerusakanDiagnosisController::class, 'prosesDiagnosis']);
         // Pastikan mengarah ke method yang benar
         Route::post('/mobile/proses-diagnosis', [KerusakanDiagnosisController::class, 'prosesDiagnosis']);
-        Route::get('/bengkel', [BengkelController::class, 'index']);   // ← tambah ini
-        Route::get('/bengkel/{id}', [BengkelController::class, 'show']); // ← tambah ini
-        Route::get('/layanan', [LayananController::class, 'index']);    // ← tambah ini jika perlu
+        Route::get('/bengkel', [BengkelController::class, 'index']);
+        Route::get('/bengkel/{id}', [BengkelController::class, 'show']);
+        Route::get('/layanan', [LayananController::class, 'index']);
         Route::get('/diagnosa', [DiagnosaController::class, 'indexMobile']);
         Route::post('/diagnosa', [DiagnosaController::class, 'storeMobile']);
         Route::get('/diagnosa/{id}', [DiagnosaController::class, 'show']);
+        Route::delete('/diagnosa/{id}', [DiagnosaController::class, 'destroy']);
     });
 
     Route::apiResource('kategori', KategoriController::class);
@@ -167,42 +176,41 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Tambahkan di dalam Route::middleware('auth:sanctum')
-// ── Notifikasi ─────────────────────────────────────
-Route::get('/notifikasi', function (Request $request) {
-    $notifs = DB::table('notifikasi_user')
-        ->where('user_id', $request->user()->id_user)
-        ->orderBy('created_at', 'desc')
-        ->limit(50)
-        ->get();
+    // ── Notifikasi ─────────────────────────────────────
+    Route::get('/notifikasi', function (Request $request) {
+        $notifs = DB::table('notifikasi_user')
+            ->where('user_id', $request->user()->id_user)
+            ->orderBy('created_at', 'desc')
+            ->limit(50)
+            ->get();
 
-    return response()->json([
-        'berhasil' => true,
-        'data'     => $notifs,
-    ]);
-});
+        return response()->json([
+            'berhasil' => true,
+            'data'     => $notifs,
+        ]);
+    });
 
-Route::patch('/notifikasi/{id}/baca', function (Request $request, $id) {
-    DB::table('notifikasi_user')
-        ->where('id', $id)
-        ->where('user_id', $request->user()->id_user)
-        ->update(['sudah_dibaca' => 1]);
+    Route::patch('/notifikasi/{id}/baca', function (Request $request, $id) {
+        DB::table('notifikasi_user')
+            ->where('id', $id)
+            ->where('user_id', $request->user()->id_user)
+            ->update(['sudah_dibaca' => 1]);
 
-    return response()->json(['berhasil' => true]);
-});
+        return response()->json(['berhasil' => true]);
+    });
 
-Route::patch('/notifikasi/baca-semua', function (Request $request) {
-    DB::table('notifikasi_user')
-        ->where('user_id', $request->user()->id_user)
-        ->update(['sudah_dibaca' => 1]);
+    Route::patch('/notifikasi/baca-semua', function (Request $request) {
+        DB::table('notifikasi_user')
+            ->where('user_id', $request->user()->id_user)
+            ->update(['sudah_dibaca' => 1]);
 
-    return response()->json(['berhasil' => true]);
-});
- Route::post('/update-token', function (Request $request) {
-            $request->validate(['expo_push_token' => 'required|string']);
-            $request->user()->update([
-                'expo_push_token' => $request->expo_push_token
-            ]);
-            return response()->json(['berhasil' => true]);
-        });
-
+        return response()->json(['berhasil' => true]);
+    });
+    Route::post('/update-token', function (Request $request) {
+        $request->validate(['expo_push_token' => 'required|string']);
+        $request->user()->update([
+            'expo_push_token' => $request->expo_push_token
+        ]);
+        return response()->json(['berhasil' => true]);
+    });
 });

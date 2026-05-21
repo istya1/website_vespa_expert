@@ -115,19 +115,21 @@ class KerusakanDiagnosisController extends Controller
                 // ========================
                 // CASE B: PARTIAL MATCH
                 // ========================
+                // ========================
+                // CASE B: PARTIAL MATCH
+                // ========================
             } else {
 
-                // ✅ Skip jika kerusakan sudah ada di final
+                // Skip jika kerusakan sudah ada di final
                 if (in_array($kodeKerusakan, $kodeKerusakanFinal)) continue;
 
-                // ✅ Skip jika SEMUA gejala yang cocok sudah dipakai oleh final match lain
-                // (artinya tidak ada informasi baru dari partial ini)
+                // Skip jika SEMUA gejala yang cocok sudah dipakai oleh final match lain
                 $gejalaMatchArray  = array_values($gejalaMatch);
                 $semuaSudahDipakai = count(array_diff($gejalaMatchArray, $gejalaSudahDipakaiFinal)) === 0;
                 if ($semuaSudahDipakai) continue;
 
-                // ✅ Threshold minimal 75% untuk bisa masuk kemungkinan
-                if ($persentase < 60) continue;
+                // ✅ HAPUS threshold 60% — ganti: minimal 1 gejala cocok sudah cukup
+                // if ($persentase < 60) continue;  ← HAPUS BARIS INI
 
                 $kemungkinanKerusakan[] = [
                     'id_aturan'      => $aturan->id_aturan,
@@ -143,11 +145,11 @@ class KerusakanDiagnosisController extends Controller
                         'total_rule'      => $totalGejala,
                         'sisa_konfirmasi' => count($gejalaBelum),
                     ],
-                    'gejala'         => [
+                    'gejala' => [
                         'sudah_dipilih'      => $this->getDetailGejala(array_values($gejalaMatch)),
                         'perlu_dikonfirmasi' => $this->getDetailGejala(array_values($gejalaBelum)),
                     ],
-                    'status'         => 'kemungkinan',
+                    'status' => 'kemungkinan',
                 ];
             }
         }
@@ -162,12 +164,16 @@ class KerusakanDiagnosisController extends Controller
             ? 'selesai'
             : 'tidak_ditemukan';
 
+        // ✅ TAMBAH: ada_konfirmasi = true jika ada kemungkinan & belum ada hasil final
+        $adaKonfirmasi = count($kemungkinanKerusakan) > 0 && count($diagnosisFinal) === 0;
+
         return response()->json([
             'success'               => true,
             'status_diagnosis'      => $statusDiagnosis,
             'message'               => $this->generatePesan($statusDiagnosis, count($diagnosisFinal), count($kemungkinanKerusakan)),
             'hasil_diagnosis'       => $diagnosisFinal,
             'kemungkinan_kerusakan' => $kemungkinanKerusakan,
+            'ada_konfirmasi'        => $adaKonfirmasi, // ✅ TAMBAH INI
         ]);
     }
 
@@ -265,7 +271,7 @@ class KerusakanDiagnosisController extends Controller
             ->groupBy(function ($g) {
                 return $g->kategori_id; // ← pakai ini
             });
-            
+
         $aturan = Aturan::with(['gejala', 'kerusakan'])
             ->whereHas('kerusakan', fn($q) => $q->where('jenis_motor', $jenisMotor))
             ->get();

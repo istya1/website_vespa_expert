@@ -17,7 +17,7 @@ class Kerusakan extends Model
         'nama_kerusakan',
         'kategori',
         'solusi',
-        'jenis_motor',
+        'jenis_motor_id',
     ];
 
     // Relasi ke gejala melalui aturan
@@ -31,6 +31,11 @@ class Kerusakan extends Model
             'kode_kerusakan',
             'kode_gejala'
         );
+    }
+    
+    public function jenisMotor()
+    {
+        return $this->belongsTo(JenisMotor::class, 'jenis_motor_id', 'id_jenis_motor');
     }
 
     // Relasi ke diagnosa
