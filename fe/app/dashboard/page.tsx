@@ -258,9 +258,7 @@ export default function DashboardPage() {
             <div className="bg-white p-4 rounded-xl shadow">
               <div className="flex justify-between items-center mb-3">
                 <h3 className="font-semibold">Daftar Admin Terdaftar</h3>
-                <a href="/master-data/user" className="text-sm text-blue-500 hover:underline">
-                  Lihat semua →
-                </a>
+               
               </div>
               <table className="w-full text-sm">
                 <thead>

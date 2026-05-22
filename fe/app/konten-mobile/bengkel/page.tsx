@@ -283,29 +283,40 @@ export default function BengkelPage() {
     <DashboardLayout title="Bengkel">
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Kelola Bengkel</h2>
-          <p className="text-gray-600 mt-1 text-sm">Data bengkel untuk mobile app pengguna</p>
+          <h2 className="text-2xl font-bold text-gray-800">Kelola Vespa Pedia</h2>
+          <p className="text-gray-600 mt-1">Konten edukasi untuk mobile app pengguna</p>
         </div>
-        <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2">
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-              placeholder="Cari nama, alamat, telepon..."
-              className="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none w-full xs:w-56 sm:w-64"
+              onChange={e => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Cari judul atau status..."
+              className="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none w-64"
             />
           </div>
+
           <button
             onClick={() => handleOpenModal()}
-            className="bg-primary-600 text-white px-5 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 text-sm whitespace-nowrap"
+            className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 text-sm whitespace-nowrap"
           >
-            <Plus size={18} />
-            Tambah Bengkel
+            <Plus size={18} /> Tambah Bengkel
           </button>
+
         </div>
       </div>
 
@@ -318,38 +329,70 @@ export default function BengkelPage() {
         <>
           {/* Desktop Table */}
           <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-full border border-gray-300 border-collapse">
+
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nama</th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alamat</th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gambar</th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Urutan</th>
-                  <th className="px-4 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">
+                    Nama
+                  </th>
+
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">
+                    Alamat
+                  </th>
+
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">
+                    Gambar
+                  </th>
+
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">
+                    Status
+                  </th>
+
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">
+                    Urutan
+                  </th>
+
+                  <th className="px-4 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
+                    Aksi
+                  </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+
+              <tbody className="bg-white">
                 {paginatedList.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                    <td
+                      colSpan={6}
+                      className="px-6 py-8 text-center text-gray-500 border-b border-gray-300"
+                    >
                       <Store size={48} className="mx-auto mb-2 text-gray-300" />
-                      {searchQuery ? `Tidak ada hasil untuk "${searchQuery}"` : 'Belum ada data bengkel'}
+                      {searchQuery
+                        ? `Tidak ada hasil untuk "${searchQuery}"`
+                        : 'Belum ada data bengkel'}
                     </td>
                   </tr>
                 ) : (
                   paginatedList.map((b) => (
                     <tr key={b.id} className="hover:bg-gray-50">
-                      <td className="px-4 sm:px-6 py-4 text-sm font-medium text-gray-900 max-w-xs truncate">{b.nama}</td>
-                      <td className="px-4 sm:px-6 py-4 text-sm text-gray-500 max-w-xs truncate">{b.alamat}</td>
-                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
+
+                      <td className="px-4 sm:px-6 py-4 text-sm font-medium text-gray-900 max-w-xs truncate border-r border-b border-gray-300">
+                        {b.nama}
+                      </td>
+
+                      <td className="px-4 sm:px-6 py-4 text-sm text-gray-500 max-w-xs truncate border-r border-b border-gray-300">
+                        {b.alamat}
+                      </td>
+
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap border-r border-b border-gray-300">
                         {b.gambar_url ? (
                           <img
                             src={b.gambar_url}
                             alt={b.nama}
                             className="h-32 w-48 object-cover border-4 border-white"
                             onError={(e) => {
-                              e.currentTarget.src = 'https://via.placeholder.com/480x320?text=Gambar+Gagal+Dimuat';
+                              e.currentTarget.src =
+                                'https://via.placeholder.com/480x320?text=Gambar+Gagal+Dimuat';
                             }}
                           />
                         ) : (
@@ -358,22 +401,40 @@ export default function BengkelPage() {
                           </div>
                         )}
                       </td>
-                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${b.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm border-r border-b border-gray-300">
+                        <span
+                          className={`px-3 py-1 text-xs font-semibold rounded-full ${b.status === 'published'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                            }`}
+                        >
                           {b.status}
                         </span>
                       </td>
-                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{b.urutan}</td>
-                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center border-r border-b border-gray-300">
+                        {b.urutan}
+                      </td>
+
+                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium border-b border-gray-300">
                         <div className="flex items-center justify-center gap-2">
-                          <button onClick={() => handleOpenModal(b)} className="text-primary-600 hover:text-primary-800 p-1 hover:bg-primary-50 rounded transition-colors">
+                          <button
+                            onClick={() => handleOpenModal(b)}
+                            className="text-primary-600 hover:text-primary-800 p-1 hover:bg-primary-50 rounded transition-colors"
+                          >
                             <Pencil size={17} />
                           </button>
-                          <button onClick={() => handleDelete(b.id)} className="text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded transition-colors">
+
+                          <button
+                            onClick={() => handleDelete(b.id)}
+                            className="text-red-600 hover:text-red-800 p-1 hover:bg-red-50 rounded transition-colors"
+                          >
                             <Trash2 size={17} />
                           </button>
                         </div>
                       </td>
+
                     </tr>
                   ))
                 )}
@@ -440,11 +501,10 @@ export default function BengkelPage() {
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-1 rounded text-sm ${
-                    page === currentPage
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-gray-200 hover:bg-gray-300'
-                  }`}
+                  className={`px-3 py-1 rounded text-sm ${page === currentPage
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-gray-200 hover:bg-gray-300'
+                    }`}
                 >
                   {page}
                 </button>

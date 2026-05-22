@@ -176,7 +176,8 @@ export default function KategoriPage() {
 
       {/* Header: judul + search + tombol tambah */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Daftar Kategori</h2>
+        <h2 className="text-2xl font-bold text-gray-800">Daftar Kategori Kerusakan</h2>
+        <p className="text-gray-600 mt-1">Data kategori kerusakan untuk menginputkan informasi kategori berdasarkan jenis kerusakan</p>
 
         <div className="flex items-center gap-2">
           {/* Search bar */}
@@ -204,24 +205,31 @@ export default function KategoriPage() {
       {/* Table */}
       {loading ? (
         <div className="flex flex-col justify-center items-center h-64 gap-3">
-          <img src="/asset/load.png" alt="Loading" className="w-44 h-28 animate-pulse" />
-          <p className="text-sm text-gray-500">Memuat data...</p>
+          <img
+            src="/asset/load.png"
+            alt="Loading"
+            className="w-44 h-28 animate-pulse"
+          />
+
+          <p className="text-sm text-gray-500">
+            Memuat data...
+          </p>
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full border border-gray-300 border-collapse">
+            <thead className="bg-gray-50 ">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Kategori</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bobot</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border-r border-b border-gray-300">ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border-r border-b border-gray-300">Nama Kategori</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border-r border-b border-gray-300">Bobot</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase border-r border-b border-gray-300">Aksi</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-gray-200 border-r border-gray-300">
               {currentKategori.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500 border-r border-b border-gray-300 ">
                     {searchQuery
                       ? `Tidak ada kategori yang cocok dengan "${searchQuery}"`
                       : 'Tidak ada data kategori'}
@@ -230,10 +238,10 @@ export default function KategoriPage() {
               ) : (
                 currentKategori.map((k) => (
                   <tr key={k.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{k.id}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{k.nama_kategori}</td>
-                    <td className="px-6 py-4 text-sm">{getBobotBadge(k.bobot_default)}</td>
-                    <td className="px-6 py-4 text-sm text-center">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900 border-r border-gray-300">{k.id}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-300">{k.nama_kategori}</td>
+                    <td className="px-6 py-4 text-sm border-r border-gray-300">{getBobotBadge(k.bobot_default)}</td>
+                    <td className="px-6 py-4 text-sm text-center border-r border-gray-300">
                       <div className="flex justify-center gap-2">
                         <button onClick={() => handleOpenModal(k)} className="text-primary-600 hover:text-primary-800">
                           <Pencil size={18} />
@@ -259,15 +267,14 @@ export default function KategoriPage() {
             disabled={currentPage === 1}
             className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
           >
-            Prev
+            Sebelum
           </button>
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
             <button
               key={page}
               onClick={() => setCurrentPage(page)}
-              className={`px-3 py-1 rounded ${
-                page === currentPage ? 'bg-primary-600 text-white' : 'bg-gray-200 hover:bg-gray-300'
-              }`}
+              className={`px-3 py-1 rounded ${page === currentPage ? 'bg-primary-600 text-white' : 'bg-gray-200 hover:bg-gray-300'
+                }`}
             >
               {page}
             </button>
@@ -277,7 +284,7 @@ export default function KategoriPage() {
             disabled={currentPage === totalPages}
             className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
           >
-            Next
+            Selanjutnya
           </button>
         </div>
       )}
@@ -316,9 +323,8 @@ export default function KategoriPage() {
                     setFormData({ ...formData, nama_kategori: e.target.value });
                     setFormErrors((prev) => ({ ...prev, nama_kategori: undefined }));
                   }}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${
-                    formErrors.nama_kategori ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${formErrors.nama_kategori ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
                   placeholder="Masukkan nama kategori"
                 />
                 {formErrors.nama_kategori && (
@@ -335,15 +341,14 @@ export default function KategoriPage() {
                   {BOBOT_OPTIONS.map((opt) => (
                     <label
                       key={opt.value}
-                      className={`flex items-center gap-3 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${
-                        formData.bobot_default === opt.value
-                          ? opt.value === 1
-                            ? 'border-green-500 bg-green-50'
-                            : opt.value === 2
+                      className={`flex items-center gap-3 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${formData.bobot_default === opt.value
+                        ? opt.value === 1
+                          ? 'border-green-500 bg-green-50'
+                          : opt.value === 2
                             ? 'border-yellow-500 bg-yellow-50'
                             : 'border-red-500 bg-red-50'
-                          : 'border-gray-200 hover:bg-gray-50'
-                      }`}
+                        : 'border-gray-200 hover:bg-gray-50'
+                        }`}
                     >
                       <input
                         type="radio"
@@ -356,13 +361,12 @@ export default function KategoriPage() {
                         }}
                         className="accent-primary-600"
                       />
-                      <span className={`text-sm font-medium ${
-                        formData.bobot_default === opt.value
-                          ? opt.value === 1 ? 'text-green-700'
+                      <span className={`text-sm font-medium ${formData.bobot_default === opt.value
+                        ? opt.value === 1 ? 'text-green-700'
                           : opt.value === 2 ? 'text-yellow-700'
-                          : 'text-red-700'
-                          : 'text-gray-700'
-                      }`}>
+                            : 'text-red-700'
+                        : 'text-gray-700'
+                        }`}>
                         {opt.label}
                       </span>
                     </label>

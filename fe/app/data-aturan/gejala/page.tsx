@@ -16,6 +16,7 @@ interface FormData {
   bobot: number;
 }
 
+
 interface FormErrors {
   nama_gejala?: string;
   kategori_id?: string;
@@ -206,19 +207,31 @@ export default function GejalaPage() {
 
   return (
     <DashboardLayout title="Data Gejala">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Daftar Gejala</h2>
-        <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2">
+      <div className="flex flex-row items-center justify-between gap-3 mb-6 flex-wrap">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
+          Daftar Gejala
+        </h2>
+        <p className="text-gray-600 mt-1">Data gejala untuk menginputkan informasi gejala berdasarkan dengan jenis motor</p>
+
+        <div className="flex flex-row items-center gap-2">
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
               placeholder="Cari kode atau nama gejala..."
-              className="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none w-full xs:w-56 sm:w-64"
+              className="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none w-56 sm:w-64"
             />
           </div>
+
           <button
             onClick={() => handleOpenModal()}
             className="bg-primary-600 text-white px-5 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 text-sm whitespace-nowrap"
@@ -236,11 +249,10 @@ export default function GejalaPage() {
             <button
               key={jm.id_jenis_motor}
               onClick={() => handleTabChange(jm.id_jenis_motor)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
-                activeTab === jm.id_jenis_motor
+              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${activeTab === jm.id_jenis_motor
                   ? 'border-primary-600 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+                }`}
             >
               {jm.nama_motor}
             </button>
@@ -257,17 +269,17 @@ export default function GejalaPage() {
       ) : (
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-full border border-gray-300 border-collapse">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kode</th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Gejala</th>
-                  <th className="hidden md:table-cell px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kategori</th>
-                  <th className="px-4 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Bobot</th>
-                  <th className="px-4 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border-r border-b border-gray-300">Kode</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border-r border-b border-gray-300">Nama Gejala</th>
+                  <th className="hidden md:table-cell px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border-r border-b border-gray-300">Kategori</th>
+                  <th className="px-4 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase border-r border-b border-gray-300">Bobot</th>
+                  <th className="px-4 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase border-r border-b border-gray-300">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-200 border-r border-gray-300">
                 {currentGejala.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
@@ -279,8 +291,10 @@ export default function GejalaPage() {
                 ) : (
                   currentGejala.map((gejala) => (
                     <tr key={gejala.kode_gejala} className="hover:bg-gray-50">
-                      <td className="px-4 sm:px-6 py-4 text-sm font-medium text-gray-900">{gejala.kode_gejala}</td>
-                      <td className="px-4 sm:px-6 py-4 text-sm text-gray-900">
+                      <td className="px-4 sm:px-6 py-4 text-sm font-medium text-gray-900 border-r border-gray-300">
+                        {gejala.kode_gejala}
+                      </td>
+                      <td className="px-4 sm:px-6 py-4 text-sm text-gray-900 border-r border-gray-300">
                         <span className="line-clamp-2">{gejala.nama_gejala}</span>
                         {gejala.kategori?.nama_kategori && (
                           <span className="md:hidden mt-1 inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
@@ -288,19 +302,18 @@ export default function GejalaPage() {
                           </span>
                         )}
                       </td>
-                      <td className="hidden md:table-cell px-4 sm:px-6 py-4 text-sm text-gray-500">
+                      <td className="hidden md:table-cell px-4 sm:px-6 py-4 text-sm text-gray-500 border-r border-gray-300">
                         {gejala.kategori?.nama_kategori || '—'}
                       </td>
-                      <td className="px-4 sm:px-6 py-4 text-sm text-center">
-                        <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${
-                          gejala.bobot === 3 ? 'bg-red-100 text-red-700' :
-                          gejala.bobot === 2 ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-green-100 text-green-700'
-                        }`}>
+                      <td className="px-4 sm:px-6 py-4 text-sm text-center border-r border-gray-300">
+                        <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${gejala.bobot === 3 ? 'bg-red-100 text-red-700' :
+                            gejala.bobot === 2 ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-green-100 text-green-700'
+                          }`}>
                           {gejala.bobot === 3 ? 'Berat' : gejala.bobot === 2 ? 'Sedang' : 'Ringan'}
                         </span>
                       </td>
-                      <td className="px-4 sm:px-6 py-4 text-sm text-center">
+                      <td className="px-4 sm:px-6 py-4 text-sm text-center border-r border-gray-300">
                         <div className="flex justify-center gap-2">
                           <button onClick={() => handleOpenModal(gejala)} className="text-primary-600 hover:text-primary-800 p-1 hover:bg-primary-50 rounded transition-colors">
                             <Pencil size={17} />
@@ -322,11 +335,11 @@ export default function GejalaPage() {
       {/* Pagination — sama */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-2 mt-4 flex-wrap">
-          <button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1} className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50">Prev</button>
+          <button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1} className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50">Sebelum</button>
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
             <button key={page} onClick={() => setCurrentPage(page)} className={`px-3 py-1 rounded ${page === currentPage ? 'bg-primary-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>{page}</button>
           ))}
-          <button onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages} className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50">Next</button>
+          <button onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages} className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50">Selanjutnya</button>
         </div>
       )}
 

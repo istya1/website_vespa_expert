@@ -245,23 +245,34 @@ export default function VespaPediaPage() {
           <h2 className="text-2xl font-bold text-gray-800">Kelola Vespa Pedia</h2>
           <p className="text-gray-600 mt-1">Konten edukasi untuk mobile app pengguna</p>
         </div>
-        <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2 w-full sm:w-auto">
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+
           <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+
             <input
               type="text"
               value={searchQuery}
-              onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              onChange={e => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
               placeholder="Cari judul atau status..."
-              className="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none w-full xs:w-56 sm:w-64"
+              className="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none w-64"
             />
           </div>
+
           <button
             onClick={() => handleOpenModal()}
             className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 text-sm whitespace-nowrap"
           >
             <Plus size={18} /> Tambah Konten
           </button>
+
         </div>
       </div>
 
@@ -272,11 +283,10 @@ export default function VespaPediaPage() {
             <button
               key={jm.id_jenis_motor}
               onClick={() => { setActiveTab(jm.id_jenis_motor); setCurrentPage(1); setSearchQuery(''); }}
-              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
-                activeTab === jm.id_jenis_motor
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
+              className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${activeTab === jm.id_jenis_motor
+                ? 'border-primary-600 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
             >
               {jm.nama_motor}
             </button>
@@ -293,20 +303,39 @@ export default function VespaPediaPage() {
         <>
           {/* Desktop Table */}
           <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-full border border-gray-300 border-collapse">
+
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Judul</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gambar</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Urutan</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">
+                    Judul
+                  </th>
+
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">
+                    Gambar
+                  </th>
+
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">
+                    Status
+                  </th>
+
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">
+                    Urutan
+                  </th>
+
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
+                    Aksi
+                  </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+
+              <tbody className="bg-white">
                 {currentPedia.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                    <td
+                      colSpan={5}
+                      className="px-6 py-8 text-center text-gray-500 border-b border-gray-300"
+                    >
                       <BookOpen size={48} className="mx-auto mb-2 text-gray-300" />
                       {searchQuery
                         ? `Tidak ada konten yang cocok dengan "${searchQuery}"`
@@ -314,18 +343,23 @@ export default function VespaPediaPage() {
                     </td>
                   </tr>
                 ) : (
-                  currentPedia.map(p => (
+                  currentPedia.map((p) => (
                     <tr key={p.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900 max-w-xs">
+
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900 max-w-xs border-r border-b border-gray-300">
                         <span className="line-clamp-2">{p.judul}</span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+
+                      <td className="px-6 py-4 whitespace-nowrap border-r border-b border-gray-300">
                         {p.gambar_url ? (
                           <img
                             src={p.gambar_url}
                             alt={p.judul}
                             className="h-32 w-48 object-cover rounded-lg border border-gray-200"
-                            onError={e => { e.currentTarget.src = 'https://via.placeholder.com/480x320?text=Gagal+Dimuat'; }}
+                            onError={(e) => {
+                              e.currentTarget.src =
+                                'https://via.placeholder.com/480x320?text=Gagal+Dimuat';
+                            }}
                           />
                         ) : (
                           <div className="h-32 w-48 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-sm">
@@ -333,28 +367,45 @@ export default function VespaPediaPage() {
                           </div>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                          p.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                        }`}>
+
+                      <td className="px-6 py-4 whitespace-nowrap border-r border-b border-gray-300">
+                        <span
+                          className={`px-3 py-1 text-xs font-semibold rounded-full ${p.status === 'published'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                            }`}
+                        >
                           {p.status === 'published' ? 'Dipublikasi' : 'Draft'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{p.urutan}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
+
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center border-r border-b border-gray-300">
+                        {p.urutan}
+                      </td>
+
+                      <td className="px-6 py-4 whitespace-nowrap text-center border-b border-gray-300">
                         <div className="flex items-center justify-center gap-2">
-                          <button onClick={() => handleOpenModal(p)} className="text-primary-600 hover:text-primary-900 p-2 hover:bg-primary-50 rounded-lg transition-colors">
+                          <button
+                            onClick={() => handleOpenModal(p)}
+                            className="text-primary-600 hover:text-primary-900 p-2 hover:bg-primary-50 rounded-lg transition-colors"
+                          >
                             <Pencil size={18} />
                           </button>
-                          <button onClick={() => handleDelete(p.id)} className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition-colors">
+
+                          <button
+                            onClick={() => handleDelete(p.id)}
+                            className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                          >
                             <Trash2 size={18} />
                           </button>
                         </div>
                       </td>
+
                     </tr>
                   ))
                 )}
               </tbody>
+
             </table>
           </div>
 
@@ -392,9 +443,8 @@ export default function VespaPediaPage() {
                     />
                   )}
                   <div className="flex justify-between items-center text-sm mt-3">
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                      p.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                    }`}>
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${p.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                      }`}>
                       {p.status === 'published' ? 'Dipublikasi' : 'Draft'}
                     </span>
                     <span className="text-gray-500">Urutan: {p.urutan}</span>
@@ -418,9 +468,8 @@ export default function VespaPediaPage() {
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-1 rounded text-sm ${
-                    page === currentPage ? 'bg-primary-600 text-white' : 'bg-gray-200 hover:bg-gray-300'
-                  }`}
+                  className={`px-3 py-1 rounded text-sm ${page === currentPage ? 'bg-primary-600 text-white' : 'bg-gray-200 hover:bg-gray-300'
+                    }`}
                 >
                   {page}
                 </button>

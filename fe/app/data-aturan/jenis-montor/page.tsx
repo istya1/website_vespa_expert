@@ -221,6 +221,7 @@ export default function JenisMotorPage() {
         <h2 className="text-2xl font-bold text-gray-800">
           Daftar Jenis Motor
         </h2>
+        <p className="text-gray-600 mt-1">Data jenis motor untuk menginputkan jenis motor Vespa Matic</p>
 
         <div className="flex items-center gap-2">
           {/* Search */}
@@ -268,18 +269,18 @@ export default function JenisMotorPage() {
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-full border border-gray-200 divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border border-gray-200">
                   ID
                 </th>
 
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border border-gray-200">
                   Nama Motor
                 </th>
 
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase border border-gray-200">
                   Aksi
                 </th>
               </tr>
@@ -290,7 +291,7 @@ export default function JenisMotorPage() {
                 <tr>
                   <td
                     colSpan={3}
-                    className="px-6 py-8 text-center text-gray-500"
+                    className="px-6 py-8 text-center text-gray-500 border border-gray-200"
                   >
                     {searchQuery
                       ? `Tidak ada data yang cocok dengan "${searchQuery}"`
@@ -303,18 +304,18 @@ export default function JenisMotorPage() {
                     key={item.id_jenis_motor}
                     className="hover:bg-gray-50"
                   >
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900 border border-gray-200">
                       {indexOfFirstItem + currentData.indexOf(item) + 1}  {/* ← ganti di sini */}
                     </td>
 
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <td className="px-6 py-4 text-sm text-center text-gray-900 border border-gray-200">
                       <div className="flex items-center gap-2">
 
                         {item.nama_motor}
                       </div>
                     </td>
 
-                    <td className="px-6 py-4 text-sm text-center">
+                    <td className="px-6 py-4 text-sm text-center border border-gray-200">
                       <div className="flex justify-center gap-2">
                         <button
                           onClick={() =>
@@ -355,7 +356,7 @@ export default function JenisMotorPage() {
             disabled={currentPage === 1}
             className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
           >
-            Prev
+            Sebelum
           </button>
 
           {Array.from(
@@ -366,8 +367,8 @@ export default function JenisMotorPage() {
               key={page}
               onClick={() => setCurrentPage(page)}
               className={`px-3 py-1 rounded ${page === currentPage
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-gray-200 hover:bg-gray-300'
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-200 hover:bg-gray-300'
                 }`}
             >
               {page}
@@ -383,7 +384,7 @@ export default function JenisMotorPage() {
             disabled={currentPage === totalPages}
             className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
           >
-            Next
+            Selanjutnya
           </button>
         </div>
       )}
@@ -440,8 +441,8 @@ export default function JenisMotorPage() {
                   }}
                   placeholder="Contoh: Primavera 150"
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${formErrors.nama_motor
-                      ? 'border-red-500 bg-red-50'
-                      : 'border-gray-300'
+                    ? 'border-red-500 bg-red-50'
+                    : 'border-gray-300'
                     }`}
                 />
 

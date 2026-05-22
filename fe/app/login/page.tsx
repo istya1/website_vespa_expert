@@ -161,12 +161,12 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-600 mt-6">
+        {/* <p className="text-center text-sm text-gray-600 mt-6">
           Belum punya akun?{' '}
           <Link href="/register" className="text-primary-600 hover:text-primary-700 font-semibold">
             Daftar di sini
           </Link>
-        </p>
+        </p> */}
 
         <p className="text-center text-sm text-gray-500 mt-8">
           © 2026 Vespa Matic Expert.

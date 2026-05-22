@@ -25,8 +25,8 @@ const MENU_ITEMS: MenuItem[] = [
   {
     name: 'Data Aturan', icon: FileText,
     submenu: [
-      { name: 'Kategori Kerusakan', path: '/data-aturan/kategori', icon: AlertTriangle },
       { name: 'Jenis Motor', path: '/data-aturan/jenis-montor', icon: Motorbike },
+      { name: 'Kategori Kerusakan', path: '/data-aturan/kategori', icon: AlertTriangle },
       { name: 'Data Gejala', path: '/data-aturan/gejala', icon: AlertTriangle },
       { name: 'Data Kerusakan', path: '/data-aturan/kerusakan', icon: XCircle },
       { name: 'Aturan', path: '/data-aturan/aturan', icon: Settings },

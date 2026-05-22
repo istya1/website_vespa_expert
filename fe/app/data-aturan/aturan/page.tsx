@@ -177,6 +177,7 @@ export default function AturanPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Daftar Aturan</h2>
+        <p className="text-gray-600 mt-1">Data aturan untuk menginputkan data gejala, kerusakan dan solusi berdasarkan base knowladge</p>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           {/* Search bar */}
           <div className="relative flex-1 sm:w-64">
@@ -222,20 +223,20 @@ export default function AturanPage() {
         </div>
       ) : (
         <>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-300 overflow-x-auto">
+            <table className="min-w-full border border-gray-300 border-collapse">
+              <thead className="bg-gray-50 border-b border-gray-300">
                 <tr>
-                  <th className="px-4 py-3 text-left font-medium text-gray-600 w-8">#</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-600">Gejala</th>
-                  <th className="px-4 py-3 text-left font-medium text-gray-600">Kerusakan</th>
-                  <th className="px-4 py-3 text-center font-medium text-gray-600">Aksi</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase border-r border-b border-gray-300">ID</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-600 border-r border-b border-gray-300">Gejala</th>
+                  <th className="px-4 py-3 text-left font-medium text-gray-600 border-r border-b border-gray-300">Kerusakan</th>
+                  <th className="px-4 py-3 text-center font-medium text-gray-600 border-r border-b border-gray-300">Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 border-r border-gray-300">
                 {paginatedAturan.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="text-center py-10 text-gray-400">
+                    <td colSpan={4} className="text-center py-10 text-gray-400 border-r border-gray-300">
                       {searchQuery ? 'Tidak ada hasil yang cocok' : 'Tidak ada aturan untuk jenis motor ini'}
                     </td>
                   </tr>
@@ -244,14 +245,14 @@ export default function AturanPage() {
                     const k = kerusakanList.find(x => x.kode_kerusakan === a.kode_kerusakan);
                     return (
                       <tr key={a.id_aturan} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 text-gray-400 text-xs">
+                        <td className="px-4 py-3 text-gray-400 text-xs border-r border-gray-300">
                           {(currentPage - 1) * PAGE_SIZE + idx + 1}
                         </td>
-                        <td className="px-4 py-3 text-gray-700">
+                        <td className="px-4 py-3 text-gray-700 border-r border-gray-300">
                           {a.gejala.map(g => g.kode_gejala).join(', ')}
                         </td>
-                        <td className="px-4 py-3 text-gray-700">{k?.nama_kerusakan ?? '—'}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 text-gray-700 border-r border-gray-300">{k?.nama_kerusakan ?? '—'}</td>
+                        <td className="px-4 py-3 border-r border-gray-300">
                           <div className="flex justify-center gap-2">
                             <button
                               onClick={() => openModal(a)}
@@ -283,7 +284,7 @@ export default function AturanPage() {
                 disabled={currentPage === 1}
                 className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 text-sm"
               >
-                Prev
+                Sebelum
               </button>
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                 <button
@@ -302,7 +303,7 @@ export default function AturanPage() {
                 disabled={currentPage === totalPages}
                 className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 text-sm"
               >
-                Next
+                Selanjutnya
               </button>
             </div>
           )}
