@@ -9,7 +9,7 @@ class Kernel extends ConsoleKernel
 {
    protected function schedule(Schedule $schedule)
 {
-    $schedule->command('reminder:kirim-oli')->everyMinute(); // ← ganti ini
+   $schedule->command('reminder:kirim-oli')->dailyAt('08:00'); // ← ganti ini
 }
     protected function commands()
     {

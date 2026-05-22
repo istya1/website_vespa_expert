@@ -32,10 +32,10 @@ class KirimReminderOli extends Command
             $this->info("Servis ID: {$servis->id}, Sisa hari: {$sisaHari}, Token: {$user->expo_push_token}");
 
             // Hanya kirim di H-7, H-3, H-1
-            // if (!in_array($sisaHari, [7, 3, 1])) {
-            //     $this->warn("Skip - sisa hari {$sisaHari} tidak masuk H-7, H-3, H-1");
-            //     continue;
-            // }
+            if (!in_array($sisaHari, [7, 3, 1])) {
+                $this->warn("Skip - sisa hari {$sisaHari} tidak masuk H-7, H-3, H-1");
+                continue;
+            }
 
             // ✅ Cek token dulu sebelum lanjut
             if (empty($user->expo_push_token)) {

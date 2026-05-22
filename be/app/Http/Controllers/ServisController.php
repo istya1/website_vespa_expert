@@ -63,7 +63,7 @@ class ServisController extends Controller
             $request->user()->update(['expo_push_token' => $validated['expo_push_token']]);
         }
 
-        $interval     = $validated['interval_ganti_oli'] ?? 140;
+        $interval     = $validated['interval_ganti_oli'] ?? 1000;
         $kmTarget     = $validated['km_sekarang'] + $interval;
         $hariDeadline = (int) ceil($interval / $validated['rata_rata_km_per_hari']);
         $deadline     = Carbon::now()->addDays($hariDeadline);

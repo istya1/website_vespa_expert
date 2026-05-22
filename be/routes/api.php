@@ -13,9 +13,6 @@ use App\Http\Controllers\UserServiceReminderController;
 use App\Http\Controllers\AturanController;
 use App\Http\Controllers\KerusakanDiagnosisController;
 use App\Http\Controllers\SuperAdminController;
-use Kreait\Firebase\Factory;
-use Kreait\Firebase\Messaging\CloudMessage;
-use Kreait\Firebase\Messaging\Notification as FirebaseNotification;
 use App\Http\Controllers\BengkelController;
 use App\Http\Controllers\LayananController;
 use App\Http\Controllers\KategoriController;
@@ -62,10 +59,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/layanan/{id}', [LayananController::class, 'update']);
     Route::delete('/layanan/{id}', [LayananController::class, 'destroy']);
 });
-// Route::post('/save-token', [ServiceController::class, 'saveToken']);
-// Route::get('/motor-types', [ServiceController::class, 'motorTypes']);
-// Route::post('/save-km', [ServiceController::class, 'saveKm']);
-
 
 Route::get('/jenis-motor', [JenisMotorController::class, 'index']);
 Route::post('/jenis-motor', [JenisMotorController::class, 'store']);
