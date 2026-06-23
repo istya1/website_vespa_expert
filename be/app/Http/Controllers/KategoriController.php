@@ -21,12 +21,10 @@ class KategoriController extends Controller
     {
         $request->validate([
             'nama_kategori' => 'required|string|max:100',
-            'bobot_default' => 'required|integer|in:1,2,3'
         ]);
 
         $kategori = Kategori::create([
             'nama_kategori' => $request->nama_kategori,
-            'bobot_default' => $request->bobot_default
         ]);
 
         return response()->json([
@@ -40,7 +38,6 @@ class KategoriController extends Controller
     public function show(int $id)
     {
         $kategori = Kategori::findOrFail($id);
-
         return response()->json([
             'success' => true,
             'data' => $kategori
@@ -54,12 +51,10 @@ class KategoriController extends Controller
 
         $request->validate([
             'nama_kategori' => 'required|string|max:100',
-            'bobot_default' => 'required|integer|in:1,2,3'
         ]);
 
         $kategori->update([
             'nama_kategori' => $request->nama_kategori,
-            'bobot_default' => $request->bobot_default
         ]);
 
         return response()->json([

@@ -51,8 +51,11 @@ class Diagnosa extends Model
 
     // RELASI BARU: Ke semua hasil diagnosis (termasuk alternatif)
     public function hasilDiagnosis()
-    {
-        return $this->hasMany(DiagnosaHasil::class, 'id_diagnosa', 'id_diagnosa')
-            ->orderBy('prioritas', 'asc');
-    }
+{
+    return $this->hasMany(
+        DiagnosaHasil::class,
+        'id_diagnosa',
+        'id_diagnosa'
+    )->orderBy('persentase_kecocokan', 'desc');
+}
 }

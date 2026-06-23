@@ -2,150 +2,206 @@
 
 namespace App\Http\Controllers;
 
-// Import model Bengkel
 use App\Models\Bengkel;
-// Import request untuk ambil data dari user
 use Illuminate\Http\Request;
-// Import storage untuk upload & delete file
 use Illuminate\Support\Facades\Storage;
 
 class BengkelController extends Controller
 {
-    // 🔹 GET semua bengkel
+    /*
+    |--------------------------------------------------------------------------
+    | GET ALL BENGKEL
+    |--------------------------------------------------------------------------
+    */
     public function index()
     {
-        // Ambil semua data bengkel + relasi layanan
         $data = Bengkel::with('layanan')
-            ->orderBy('urutan', 'asc') // urutkan berdasarkan kolom urutan
+            ->orderBy('urutan', 'asc')
             ->get()
             ->map(function ($item) {
-                // Tambahkan atribut gambar_url (link lengkap ke gambar)
-                $item->gambar_url = $item->gambar
-                    ? asset('storage/' . $item->gambar)
-                    : null;
+
+                $gambar = json_decode($item->gambar, true);
+
+                $item->gambar_url = $gambar
+                    ? collect($gambar)->map(function ($img) {
+                        return asset('storage/' . $img);
+                    })
+                    : [];
+
                 return $item;
             });
 
-        // Return response dalam bentuk JSON
         return response()->json($data);
     }
 
-    // 🔹 STORE (tambah bengkel)
+    /*
+    |--------------------------------------------------------------------------
+    | STORE BENGKEL
+    |--------------------------------------------------------------------------
+    */
     public function store(Request $request)
     {
-        // Validasi input dari user
         $request->validate([
-            'nama' => 'required|string|max:255', // wajib diisi
-            'alamat' => 'nullable|string',
-            'telepon' => 'nullable|string|max:20',
-            'website' => 'nullable|string|max:100',
-            'rating' => 'nullable|string|max:10',
-            'jam_operasional' => 'nullable|string',
-            'maps_link' => 'nullable|string',
-            'deskripsi' => 'nullable|string',
-            'status' => 'required|in:draft,published', // hanya boleh draft/published
-            'urutan' => 'nullable|integer',
-            'gambar' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048' // max 2MB
+            'nama'             => 'required|string|max:255',
+            'alamat'           => 'nullable|string',
+            'telepon'          => 'nullable|string|max:20',
+            'website'          => 'nullable|string|max:100',
+            'rating'           => 'nullable|string|max:10',
+            'jam_operasional'  => 'nullable|string',
+            'maps_link'        => 'nullable|string',
+            'deskripsi'        => 'nullable|string',
+            'status'           => 'required|in:draft,published',
+            'urutan'           => 'nullable|integer',
+
+            // MULTIPLE IMAGE
+            'gambar.*'         => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
-        // Ambil semua data kecuali gambar
         $data = $request->except('gambar');
 
-        // 🔹 Upload gambar jika ada
+        /*
+        |--------------------------------------------------------------------------
+        | Upload Multiple Gambar
+        |--------------------------------------------------------------------------
+        */
+        $gambarPaths = [];
+
         if ($request->hasFile('gambar')) {
-            $file = $request->file('gambar'); // ambil file
-            $path = $file->store('bengkel', 'public'); // simpan ke storage/public/bengkel
-            $data['gambar'] = $path; // simpan path ke database
+
+            foreach ($request->file('gambar') as $file) {
+
+                $path = $file->store('bengkel', 'public');
+
+                $gambarPaths[] = $path;
+            }
+
+            $data['gambar'] = json_encode($gambarPaths);
         }
 
-        // Simpan data ke database
         $bengkel = Bengkel::create($data);
 
-        // Return response
         return response()->json([
             'message' => 'Bengkel berhasil ditambahkan',
-            'data' => $bengkel
+            'data'    => $bengkel
         ]);
     }
 
-    // 🔹 SHOW (detail)
-    public function show(int $id)
+    /*
+    |--------------------------------------------------------------------------
+    | SHOW DETAIL
+    |--------------------------------------------------------------------------
+    */
+    public function show($id)
     {
-        // Cari bengkel berdasarkan id + relasi layanan
         $bengkel = Bengkel::with('layanan')->findOrFail($id);
 
-        // Tambahkan URL gambar
-        $bengkel->gambar_url = $bengkel->gambar
-            ? config('app.url') . '/storage/' . $bengkel->gambar
-            : null;
+        $gambar = json_decode($bengkel->gambar, true);
 
-        // Return JSON
+        $bengkel->gambar_url = $gambar
+            ? collect($gambar)->map(function ($img) {
+                return config('app.url') . '/storage/' . $img;
+            })
+            : [];
+
         return response()->json($bengkel);
     }
 
-    // 🔹 UPDATE
+    /*
+    |--------------------------------------------------------------------------
+    | UPDATE BENGKEL
+    |--------------------------------------------------------------------------
+    */
     public function update(Request $request, int $id)
     {
-        // Cari data bengkel
         $bengkel = Bengkel::findOrFail($id);
 
-        // Validasi (semua nullable karena update tidak wajib semua diisi)
         $request->validate([
-            'nama' => 'nullable|string|max:255',
-            'alamat' => 'nullable|string',
-            'telepon' => 'nullable|string|max:20',
-            'website' => 'nullable|string|max:100',
-            'rating' => 'nullable|string|max:10',
-            'jam_operasional' => 'nullable|string',
-            'maps_link' => 'nullable|string',
-            'deskripsi' => 'nullable|string',
-            'status' => 'nullable|in:draft,published',
-            'urutan' => 'nullable|integer',
-            'gambar' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048'
+            'nama'             => 'nullable|string|max:255',
+            'alamat'           => 'nullable|string',
+            'telepon'          => 'nullable|string|max:20',
+            'website'          => 'nullable|string|max:100',
+            'rating'           => 'nullable|string|max:10',
+            'jam_operasional'  => 'nullable|string',
+            'maps_link'        => 'nullable|string',
+            'deskripsi'        => 'nullable|string',
+            'status'           => 'nullable|in:draft,published',
+            'urutan'           => 'nullable|integer',
+
+            // MULTIPLE IMAGE
+            'gambar.*'         => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
-        // Ambil data selain gambar
         $data = $request->except('gambar');
 
-        // 🔹 Jika upload gambar baru
+        /*
+        |--------------------------------------------------------------------------
+        | Update Multiple Gambar
+        |--------------------------------------------------------------------------
+        */
         if ($request->hasFile('gambar')) {
 
-            // Hapus gambar lama jika ada di storage
-            if ($bengkel->gambar && Storage::disk('public')->exists($bengkel->gambar)) {
-                Storage::disk('public')->delete($bengkel->gambar);
+            // Hapus gambar lama
+            $oldImages = json_decode($bengkel->gambar, true);
+
+            if ($oldImages) {
+
+                foreach ($oldImages as $img) {
+
+                    if (Storage::disk('public')->exists($img)) {
+                        Storage::disk('public')->delete($img);
+                    }
+                }
             }
 
-            // Simpan gambar baru
-            $file = $request->file('gambar');
-            $path = $file->store('bengkel', 'public');
-            $data['gambar'] = $path;
+            // Upload gambar baru
+            $gambarPaths = [];
+
+            foreach ($request->file('gambar') as $file) {
+
+                $path = $file->store('bengkel', 'public');
+
+                $gambarPaths[] = $path;
+            }
+
+            $data['gambar'] = json_encode($gambarPaths);
         }
 
-        // Update data di database
         $bengkel->update($data);
 
-        // Return response
         return response()->json([
             'message' => 'Bengkel berhasil diupdate',
-            'data' => $bengkel
+            'data'    => $bengkel
         ]);
     }
 
-    // 🔹 DELETE
+    /*
+    |--------------------------------------------------------------------------
+    | DELETE BENGKEL
+    |--------------------------------------------------------------------------
+    */
     public function destroy(int $id)
     {
-        // Cari data bengkel
         $bengkel = Bengkel::findOrFail($id);
 
-        // Hapus gambar dari storage jika ada
-        if ($bengkel->gambar && Storage::disk('public')->exists($bengkel->gambar)) {
-            Storage::disk('public')->delete($bengkel->gambar);
+        /*
+        |--------------------------------------------------------------------------
+        | Hapus Semua Gambar
+        |--------------------------------------------------------------------------
+        */
+        $images = json_decode($bengkel->gambar, true);
+
+        if ($images) {
+
+            foreach ($images as $img) {
+
+                if (Storage::disk('public')->exists($img)) {
+                    Storage::disk('public')->delete($img);
+                }
+            }
         }
 
-        // Hapus data dari database
         $bengkel->delete();
 
-        // Return response
         return response()->json([
             'message' => 'Bengkel berhasil dihapus'
         ]);

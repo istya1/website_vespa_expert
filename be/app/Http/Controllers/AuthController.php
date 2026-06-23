@@ -63,7 +63,7 @@ class AuthController extends Controller
             'password'     => 'required|string|min:6',
             'no_hp'        => 'nullable|string|max:20',
             'alamat'       => 'nullable|string',
-            'jenis_montor' => 'required|string|in:Primavera 150,Primavera S 150,LX 125,Sprint 150,Sprint S 150',
+            'jenis_motor' => 'required|string|in:Primavera 150,Primavera S 150,LX 125,Sprint 150,Sprint S 150',
         ]);
 
         if ($validator->fails()) {
@@ -79,7 +79,7 @@ class AuthController extends Controller
                 'role'              => 'pengguna',
                 'no_hp'             => $request->no_hp,
                 'alamat'            => $request->alamat ?? null,
-                'jenis_montor'      => $request->jenis_montor,
+                'jenis_motor'      => $request->jenis_motor,
                 'email_verified_at' => null,        // Belum diverifikasi
             ]);
 

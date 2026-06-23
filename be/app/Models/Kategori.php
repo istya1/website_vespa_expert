@@ -7,8 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Kategori extends Model
 {
     protected $table = 'kategori';
-
-    protected $fillable = ['nama_kategori', 'bobot_default'];
+    protected $fillable = ['nama_kategori'];
 
     public function gejala()
     {

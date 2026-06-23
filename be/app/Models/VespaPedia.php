@@ -10,6 +10,7 @@ class VespaPedia extends Model
 
     protected $fillable = [
         'judul',
+        'deskripsi',
         'jenis_motor_id',
         'gambar',
         'spesifikasi',

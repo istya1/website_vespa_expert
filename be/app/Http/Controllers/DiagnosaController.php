@@ -22,7 +22,7 @@ class DiagnosaController extends Controller
             'kerusakan',
             'user',
             'gejala',
-            'hasilDiagnosis.kerusakan'  // PASTIKAN INI ADA
+            'hasilDiagnosis.kerusakan'
         ]);
 
         if ($userId) {
@@ -31,7 +31,6 @@ class DiagnosaController extends Controller
 
         $diagnosa = $query->orderBy('id_diagnosa', 'desc')->get();
 
-        // Log untuk debug
         Log::info('Diagnosa loaded for admin', [
             'count' => $diagnosa->count(),
             'first_id' => $diagnosa->first()?->id_diagnosa,
@@ -67,14 +66,15 @@ class DiagnosaController extends Controller
         DB::beginTransaction();
 
         try {
-            // Simpan data diagnosa utama
+            // Status kerusakan utama selalu 'final' karena hasil_diagnosis
+            // hanya diisi kalau status_diagnosis = 'selesai' dengan full match
             $diagnosa = Diagnosa::create([
                 'user_id' => $request->user_id,
                 'jenis_motor' => $request->jenis_motor,
                 'gejala_terpilih' => json_encode($request->gejala_terpilih),
                 'kode_kerusakan' => $kerusakanUtama['kode_kerusakan'],
                 'persentase' => $kerusakanUtama['persentase_kecocokan'],
-                'tingkat_kepastian' => $kerusakanUtama['tingkat_kepastian'] ?? 'Sedang',
+                'status_kecocokan' => $kerusakanUtama['status'] ?? 'final',
                 'tanggal' => Carbon::now()
             ]);
 
@@ -94,9 +94,8 @@ class DiagnosaController extends Controller
                     DiagnosaHasil::create([
                         'id_diagnosa' => $diagnosa->id_diagnosa,
                         'kode_kerusakan' => $hasil['kode_kerusakan'],
-                        'prioritas' => $hasil['prioritas'] ?? 1,
                         'persentase_kecocokan' => $hasil['persentase_kecocokan'],
-                        'tingkat_kepastian' => $hasil['tingkat_kepastian'] ?? 'Sedang',
+                        'status_kecocokan' => $hasil['status'] ?? 'final',
                         'gejala_cocok' => json_encode($hasil['gejala_cocok'] ?? []),
                         'total_gejala_aturan' => $hasil['total_gejala_aturan'] ?? 0,
                     ]);
@@ -123,146 +122,155 @@ class DiagnosaController extends Controller
     }
 
     public function storeMobile(Request $request)
-{
-    Log::info('USER LOGIN:', ['user' => Auth::user()]);
-    Log::info('REQUEST DATA:', $request->all());
+    {
+        Log::info('USER LOGIN:', ['user' => Auth::user()]);
+        Log::info('REQUEST DATA:', $request->all());
 
-    $request->validate([
-        'jenis_motor'           => 'required|string',
-        'gejala_terpilih'       => 'required|array',
-        'hasil_diagnosis'       => 'nullable|array',
-        'kemungkinan_kerusakan' => 'nullable|array',
-    ]);
+        $request->validate([
+            'jenis_motor'           => 'required|string',
+            'gejala_terpilih'       => 'required|array',
+            'hasil_diagnosis'       => 'nullable|array',
+            'kemungkinan_kerusakan' => 'nullable|array',
+        ]);
 
-    $user = Auth::user();
-    if (!$user) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Unauthenticated. Silakan login terlebih dahulu.'
-        ], 401);
-    }
-
-    DB::beginTransaction();
-    try {
-        $hasilDiagnosis       = $request->hasil_diagnosis ?? [];
-        $kemungkinanKerusakan = $request->kemungkinan_kerusakan ?? [];
-
-        Log::info('Jumlah hasil_diagnosis:', ['count' => count($hasilDiagnosis)]);
-        Log::info('Jumlah kemungkinan_kerusakan:', ['count' => count($kemungkinanKerusakan)]);
-
-        $kodeKerusakan    = null;
-        $persentase       = 0;
-        $tingkatKepastian = 'Sedang';
-
-        if (!empty($hasilDiagnosis) && isset($hasilDiagnosis[0])) {
-            $utama = $hasilDiagnosis[0];
-            $kodeKerusakan    = $utama['kode_kerusakan'] ?? null;
-            $persentase       = $utama['persentase_kecocokan'] ?? 0;
-            $tingkatKepastian = $utama['tingkat_kepastian'] ?? 'Sedang';
-        } elseif (!empty($kemungkinanKerusakan)) {
-            usort($kemungkinanKerusakan, function ($a, $b) {
-                $pA = $a['kecocokan']['persentase'] ?? 0;
-                $pB = $b['kecocokan']['persentase'] ?? 0;
-                return $pB <=> $pA;
-            });
-            $utama = $kemungkinanKerusakan[0];
-            $kodeKerusakan    = $utama['kode_kerusakan'] ?? null;
-            $persentase       = $utama['kecocokan']['persentase'] ?? 0;
-            $tingkatKepastian = $utama['tingkat_kepastian'] ?? 'Sedang';
-        } else {
-            Log::warning('Tidak ada data hasil_diagnosis ATAU kemungkinan_kerusakan yang valid');
+        $user = Auth::user();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated. Silakan login terlebih dahulu.'
+            ], 401);
         }
 
-        // ✅ CEK DUPLIKAT dalam 5 detik terakhir
-        $duplikat = Diagnosa::where('user_id', $user->id_user)
-            ->where('jenis_motor', $request->jenis_motor)
-            ->where('kode_kerusakan', $kodeKerusakan)
-            ->where('created_at', '>=', Carbon::now()->subSeconds(5))
-            ->exists();
+        DB::beginTransaction();
+        try {
+            $hasilDiagnosis       = $request->hasil_diagnosis ?? [];
+            $kemungkinanKerusakan = $request->kemungkinan_kerusakan ?? [];
 
-        if ($duplikat) {
-            DB::rollBack();
-            Log::info('Duplikat terdeteksi, simpan dibatalkan', [
-                'user_id' => $user->id_user,
-                'kode_kerusakan' => $kodeKerusakan,
+            Log::info('Jumlah hasil_diagnosis:', ['count' => count($hasilDiagnosis)]);
+            Log::info('Jumlah kemungkinan_kerusakan:', ['count' => count($kemungkinanKerusakan)]);
+
+            $kodeKerusakan    = null;
+            $persentase       = 0;
+            $statusKecocokan  = 'final';
+
+            if (!empty($hasilDiagnosis) && isset($hasilDiagnosis[0])) {
+                // Ada diagnosis final (full match) -> dipakai sebagai hasil utama
+                $utama = $hasilDiagnosis[0];
+                $kodeKerusakan   = $utama['kode_kerusakan'] ?? null;
+                $persentase      = $utama['persentase_kecocokan'] ?? 0;
+                $statusKecocokan = 'final';
+            } elseif (!empty($kemungkinanKerusakan)) {
+                // Tidak ada full match -> ambil kemungkinan kerusakan
+                // dengan persentase kecocokan tertinggi sebagai hasil utama
+                usort($kemungkinanKerusakan, function ($a, $b) {
+                    $pA = $a['kecocokan']['persentase'] ?? 0;
+                    $pB = $b['kecocokan']['persentase'] ?? 0;
+                    return $pB <=> $pA;
+                });
+                $utama = $kemungkinanKerusakan[0];
+                $kodeKerusakan   = $utama['kode_kerusakan'] ?? null;
+                $persentase      = $utama['kecocokan']['persentase'] ?? 0;
+                $statusKecocokan = 'kemungkinan';
+            } else {
+                Log::warning('Tidak ada data hasil_diagnosis ATAU kemungkinan_kerusakan yang valid');
+            }
+
+            // CEK DUPLIKAT dalam 5 detik terakhir
+            $duplikat = Diagnosa::where('user_id', $user->id_user)
+                ->where('jenis_motor', $request->jenis_motor)
+                ->where('kode_kerusakan', $kodeKerusakan)
+                ->where('created_at', '>=', Carbon::now()->subSeconds(5))
+                ->exists();
+
+            if ($duplikat) {
+                DB::rollBack();
+                Log::info('Duplikat terdeteksi, simpan dibatalkan', [
+                    'user_id' => $user->id_user,
+                    'kode_kerusakan' => $kodeKerusakan,
+                ]);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Diagnosa sudah tersimpan sebelumnya',
+                ], 200);
+            }
+
+            // Buat diagnosa utama
+            $diagnosa = Diagnosa::create([
+                'user_id'          => $user->id_user,
+                'jenis_motor'      => $request->jenis_motor,
+                'gejala_terpilih'  => json_encode($request->gejala_terpilih),
+                'kode_kerusakan'   => $kodeKerusakan,
+                'persentase'       => $persentase,
+                'status_kecocokan' => $statusKecocokan,
+                'tanggal'          => Carbon::now()
             ]);
+
+            Log::info('Diagnosa utama dibuat', [
+                'id' => $diagnosa->id_diagnosa,
+                'kode_kerusakan' => $kodeKerusakan,
+                'persentase' => $persentase
+            ]);
+
+            // Simpan gejala terpilih
+            foreach ($request->gejala_terpilih as $kodeGejala) {
+                DiagnosaGejala::create([
+                    'id_diagnosa' => $diagnosa->id_diagnosa,
+                    'kode_gejala' => $kodeGejala
+                ]);
+            }
+
+            // Gabungkan hasil_diagnosis (final) & kemungkinan_kerusakan (partial)
+            // ke dalam satu format yang konsisten untuk disimpan ke diagnosa_hasil
+            $allHasil = array_merge(
+                array_map(function ($h) {
+                    return [
+                        'kode_kerusakan'       => $h['kode_kerusakan'] ?? null,
+                        'persentase_kecocokan' => $h['persentase_kecocokan'] ?? 0,
+                        'status_kecocokan'     => 'final',
+                        'gejala_cocok'         => json_encode($h['gejala_cocok'] ?? []),
+                        'total_gejala_aturan'  => $h['total_gejala_aturan'] ?? ($h['jumlah_gejala'] ?? 0),
+                    ];
+                }, $hasilDiagnosis),
+                array_map(function ($k) {
+                    return [
+                        'kode_kerusakan'       => $k['kode_kerusakan'] ?? null,
+                        'persentase_kecocokan' => $k['kecocokan']['persentase'] ?? 0,
+                        'status_kecocokan'     => 'kemungkinan',
+                        'gejala_cocok'         => json_encode($k['gejala']['sudah_dipilih'] ?? []),
+                        'total_gejala_aturan'  => $k['kecocokan']['total_rule'] ?? 0,
+                    ];
+                }, $kemungkinanKerusakan)
+            );
+
+            foreach ($allHasil as $hasil) {
+                DiagnosaHasil::create([
+                    'id_diagnosa'          => $diagnosa->id_diagnosa,
+                    'kode_kerusakan'       => $hasil['kode_kerusakan'],
+                    'persentase_kecocokan' => $hasil['persentase_kecocokan'],
+                    'status_kecocokan'     => $hasil['status_kecocokan'],
+                    'gejala_cocok'         => $hasil['gejala_cocok'],
+                    'total_gejala_aturan'  => $hasil['total_gejala_aturan'],
+                ]);
+            }
+
+            DB::commit();
+
             return response()->json([
                 'success' => true,
-                'message' => 'Diagnosa sudah tersimpan sebelumnya',
-            ], 200);
+                'message' => 'Riwayat diagnosa berhasil disimpan',
+                'data'    => $diagnosa->load(['kerusakan', 'hasilDiagnosis.kerusakan'])
+            ], 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error saving mobile diagnosa: ' . $e->getMessage() . "\nTrace: " . $e->getTraceAsString());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyimpan riwayat',
+                'error'   => $e->getMessage()
+            ], 500);
         }
-
-        // Buat diagnosa utama
-        $diagnosa = Diagnosa::create([
-            'user_id'           => $user->id_user,
-            'jenis_motor'       => $request->jenis_motor,
-            'gejala_terpilih'   => json_encode($request->gejala_terpilih),
-            'kode_kerusakan'    => $kodeKerusakan,
-            'persentase'        => $persentase,
-            'tingkat_kepastian' => $tingkatKepastian,
-            'tanggal'           => Carbon::now()
-        ]);
-
-        Log::info('Diagnosa utama dibuat', [
-            'id' => $diagnosa->id_diagnosa,
-            'kode_kerusakan' => $kodeKerusakan,
-            'persentase' => $persentase
-        ]);
-
-        // Simpan gejala terpilih
-        foreach ($request->gejala_terpilih as $kodeGejala) {
-            DiagnosaGejala::create([
-                'id_diagnosa' => $diagnosa->id_diagnosa,
-                'kode_gejala' => $kodeGejala
-            ]);
-        }
-
-        // Simpan semua ke diagnosa_hasil
-        $allHasil = array_merge(
-            $hasilDiagnosis,
-            array_map(function ($k) {
-                return [
-                    'kode_kerusakan'       => $k['kode_kerusakan'] ?? null,
-                    'persentase_kecocokan' => $k['kecocokan']['persentase'] ?? 0,
-                    'tingkat_kepastian'    => $k['tingkat_kepastian'] ?? 'Sedang',
-                    'prioritas'            => $k['prioritas'] ?? 2,
-                    'gejala_cocok'         => json_encode($k['gejala']['sudah_dipilih'] ?? []),
-                    'total_gejala_aturan'  => $k['kecocokan']['total_rule'] ?? 0,
-                ];
-            }, $kemungkinanKerusakan)
-        );
-
-        foreach ($allHasil as $index => $hasil) {
-            DiagnosaHasil::create([
-                'id_diagnosa'          => $diagnosa->id_diagnosa,
-                'kode_kerusakan'       => $hasil['kode_kerusakan'] ?? null,
-                'prioritas'            => $this->mapPrioritas($hasil['prioritas'] ?? null, $index),
-                'persentase_kecocokan' => $hasil['persentase_kecocokan'] ?? 0,
-                'tingkat_kepastian'    => $hasil['tingkat_kepastian'] ?? 'Sedang',
-                'gejala_cocok'         => $hasil['gejala_cocok'] ?? '[]',
-                'total_gejala_aturan'  => $hasil['total_gejala_aturan'] ?? 0,
-            ]);
-        }
-
-        DB::commit();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Riwayat diagnosa berhasil disimpan',
-            'data'    => $diagnosa->load(['kerusakan', 'hasilDiagnosis.kerusakan'])
-        ], 201);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Error saving mobile diagnosa: ' . $e->getMessage() . "\nTrace: " . $e->getTraceAsString());
-        return response()->json([
-            'success' => false,
-            'message' => 'Gagal menyimpan riwayat',
-            'error'   => $e->getMessage()
-        ], 500);
     }
-}
-
 
     public function show(int $id)
     {
@@ -276,7 +284,6 @@ class DiagnosaController extends Controller
             ], 404);
         }
 
-        // Decode gejala_terpilih jika berbentuk JSON string
         if (is_string($diagnosa->gejala_terpilih)) {
             $diagnosa->gejala_terpilih = json_decode($diagnosa->gejala_terpilih);
         }
@@ -300,7 +307,7 @@ class DiagnosaController extends Controller
 
         try {
             $diagnosa->update(
-                $request->only(['kode_kerusakan', 'persentase', 'tingkat_kepastian'])
+                $request->only(['kode_kerusakan', 'persentase', 'status_kecocokan'])
             );
 
             DB::commit();
@@ -325,17 +332,14 @@ class DiagnosaController extends Controller
         DB::beginTransaction();
 
         try {
-            // Hapus dari diagnosa_gejala
             if (class_exists(DiagnosaGejala::class)) {
                 DiagnosaGejala::where('id_diagnosa', $id)->delete();
             }
 
-            // Hapus dari diagnosa_hasil (multiple hasil)
             if (class_exists(DiagnosaHasil::class)) {
                 DiagnosaHasil::where('id_diagnosa', $id)->delete();
             }
 
-            // Hapus diagnosa utama
             Diagnosa::where('id_diagnosa', $id)->delete();
 
             DB::commit();
@@ -362,7 +366,7 @@ class DiagnosaController extends Controller
             'success' => true,
             'data' => Diagnosa::with([
                 'kerusakan',
-                'gejala', // 🔥 TAMBAHKAN
+                'gejala',
                 'hasilDiagnosis.kerusakan'
             ])
                 ->where('user_id', $user->id_user)
@@ -377,7 +381,6 @@ class DiagnosaController extends Controller
             ->orderByDesc('id_diagnosa')
             ->get();
 
-        // Debug
         Log::info('ADMIN DIAGNOSA TOTAL: ' . $data->count());
 
         foreach ($data as $diagnosa) {
@@ -391,18 +394,8 @@ class DiagnosaController extends Controller
         return response()->json(['success' => true, 'data' => $data]);
     }
 
-    private function mapPrioritas(?string $prioritas, int $index = 0): int
-    {
-        if ($prioritas === 'Tinggi') return 3;
-        if ($prioritas === 'Sedang') return 2;
-        if ($prioritas === 'Rendah') return 1;
-
-        return $index + 1;
-    }
-
     public function statistik()
     {
-        // 🔹 Kerusakan terbanyak
         $kerusakan = DB::table('diagnosa')
             ->select('kode_kerusakan')
             ->selectRaw('count(*) as total')
@@ -410,7 +403,6 @@ class DiagnosaController extends Controller
             ->orderByDesc('total')
             ->get();
 
-        // 🔹 Gejala terbanyak
         $gejala = DB::table('diagnosa_gejala')
             ->select('kode_gejala')
             ->selectRaw('count(*) as total')

@@ -64,6 +64,16 @@ Route::get('/jenis-motor', [JenisMotorController::class, 'index']);
 Route::post('/jenis-motor', [JenisMotorController::class, 'store']);
 Route::put('/jenis-motor/{id}', [JenisMotorController::class, 'update']);
 Route::delete('/jenis-motor/{id}', [JenisMotorController::class, 'destroy']);
+
+Route::get('/vespa-pedia', [VespaPediaController::class, 'index']);
+Route::get('/vespa-pedia/{id}', [VespaPediaController::class, 'show']);
+
+Route::middleware('auth:sanctum')->group(function () {
+
+    Route::post('/vespa-pedia', [VespaPediaController::class, 'store']);
+    Route::post('/vespa-pedia/{id}', [VespaPediaController::class, 'update']);  // pakai POST + _method spoofing
+    Route::delete('/vespa-pedia/{id}', [VespaPediaController::class, 'destroy']);
+});
 /*
 |--------------------------------------------------------------------------
 | PROTECTED ROUTES
@@ -111,8 +121,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('{id}', [DiagnosaController::class, 'destroy']);
     });
 
-    // VESPAPEDIA
-    Route::apiResource('vespa-pedia', VespaPediaController::class);
 
     // SERVICE TEMPLATE
     Route::apiResource('service-templates', ServiceTemplateController::class);
@@ -129,6 +137,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/vespa-smart-data', [KerusakanDiagnosisController::class, 'getVespaSmartData']);
         Route::get('/kerusakan/{kode}', [KerusakanDiagnosisController::class, 'getDetailKerusakan']);
         Route::post('/proses-diagnosis', [KerusakanDiagnosisController::class, 'prosesDiagnosis']);
+        Route::get('/diagnosis/pertanyaan-awal', [KerusakanDiagnosisController::class, 'getPertanyaanAwal']);
+        
         // Pastikan mengarah ke method yang benar
         Route::post('/mobile/proses-diagnosis', [KerusakanDiagnosisController::class, 'prosesDiagnosis']);
         Route::get('/bengkel', [BengkelController::class, 'index']);
@@ -181,6 +191,40 @@ Route::middleware('auth:sanctum')->group(function () {
             'berhasil' => true,
             'data'     => $notifs,
         ]);
+    });
+
+    Route::post('/notifikasi/catat-lokal', function (Request $request) {
+        $validated = $request->validate([
+            'judul' => 'required|string',
+            'pesan' => 'required|string',
+        ]);
+        DB::table('notifikasi_user')->insert([
+            'user_id'      => $request->user()->id_user,
+            'judul'        => $validated['judul'],
+            'pesan'        => $validated['pesan'],
+            'tipe'         => 'reminder_harian',
+            'sudah_dibaca' => 0,
+            'created_at'   => now(),
+            // ❌ Hapus 'updated_at' => now(),
+        ]);
+        return response()->json(['berhasil' => true]);
+    });
+
+    // api.php — tambah route baru
+    Route::post('/notifikasi/jadwalkan', function (Request $request) {
+        $validated = $request->validate([
+            'judul' => 'required|string',
+            'pesan' => 'required|string',
+        ]);
+        DB::table('notifikasi_user')->insert([
+            'user_id'      => $request->user()->id_user,
+            'judul'        => $validated['judul'],
+            'pesan'        => $validated['pesan'],
+            'tipe'         => 'reminder_harian',
+            'sudah_dibaca' => 0,
+            'created_at'   => now(),
+        ]);
+        return response()->json(['berhasil' => true]);
     });
 
     Route::patch('/notifikasi/{id}/baca', function (Request $request, $id) {

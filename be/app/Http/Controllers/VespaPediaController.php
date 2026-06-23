@@ -14,7 +14,7 @@ class VespaPediaController extends Controller
     private function sanitizeFilename(string $filename)
     {
         $extension = pathinfo($filename, PATHINFO_EXTENSION);
-        $name      = pathinfo($filename, PATHINFO_FILENAME);
+        $name = pathinfo($filename, PATHINFO_FILENAME);
 
         $name = preg_replace('/[^A-Za-z0-9_\-]/', '_', $name);
         $name = preg_replace('/_+/', '_', $name);
@@ -24,17 +24,43 @@ class VespaPediaController extends Controller
     }
 
     /**
+     * Upload multiple gambar
+     */
+    private function uploadImages(array $files): array
+    {
+        $uploadedFiles = [];
+
+        $uploadPath = public_path('uploads/vespa-pedia');
+
+        if (!file_exists($uploadPath)) {
+            mkdir($uploadPath, 0777, true);
+        }
+
+        foreach ($files as $file) {
+
+            $originalName = $this->sanitizeFilename(
+                $file->getClientOriginalName()
+            );
+
+            $filename = time() . '_' . uniqid() . '_' . $originalName;
+
+            $file->move($uploadPath, $filename);
+
+            $uploadedFiles[] = $filename;
+        }
+
+        return $uploadedFiles;
+    }
+
+    /**
      * GET ALL DATA
      */
     public function index(Request $request)
     {
         try {
+
             $query = VespaPedia::query();
 
-            // Filter status published
-            $query->where('status', 'published');
-
-            // Filter jenis motor
             if ($request->has('jenis_motor_id')) {
                 $query->where('jenis_motor_id', $request->jenis_motor_id);
             }
@@ -45,49 +71,47 @@ class VespaPediaController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->get();
 
-            // Tambahkan URL gambar
             $pedia = $pedia->map(function ($item) {
-
-                $item->gambar_url = $item->gambar
-                    ? url('uploads/vespa-pedia/' . $item->gambar)
-                    : null;
-
+                $item->gambar_url = $this->buildGambarUrl($item);
                 return $item;
             });
 
             return response()->json($pedia);
-
         } catch (\Exception $e) {
 
-            Log::error('Error in VespaPedia index: ' . $e->getMessage());
+            Log::error('Error index VespaPedia: ' . $e->getMessage());
 
             return response()->json([
-                'message' => 'Gagal mengambil data Vespa Pedia',
-                'error'   => $e->getMessage()
+                'message' => 'Gagal mengambil data',
+                'error' => $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * STORE DATA
+     * STORE
      */
     public function store(Request $request)
     {
         try {
 
             $request->validate([
-                'judul'          => 'required|max:255',
-                'jenis_motor_id' => 'required|integer|exists:jenis_motor,id_jenis_motor',
-                'spesifikasi'    => 'nullable|string',
-                'keunggulan'     => 'nullable|string',
-                'tips'           => 'nullable|string',
-                'gambar'         => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
-                'urutan'         => 'nullable|integer|min:0',
-                'status'         => 'nullable|in:draft,published',
+                'judul' => 'required|max:255',
+                'deskripsi' => 'nullable|string',
+                'jenis_motor_id' => 'required|integer',
+                'spesifikasi' => 'nullable|string',
+                'keunggulan' => 'nullable|string',
+                'tips' => 'nullable|string',
+
+                'gambar.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+
+                'urutan' => 'nullable|integer|min:0',
+                'status' => 'nullable|in:draft,published',
             ]);
 
             $data = $request->only([
                 'judul',
+                'deskripsi',
                 'jenis_motor_id',
                 'spesifikasi',
                 'keunggulan',
@@ -96,100 +120,65 @@ class VespaPediaController extends Controller
                 'status'
             ]);
 
-            // DEFAULT VALUE
             $data['urutan'] = $data['urutan'] ?? 0;
             $data['status'] = $data['status'] ?? 'published';
 
-            // KONTEN WAJIB ADA
             $data['konten'] = json_encode([
+                'deskripsi' => $request->deskripsi,
                 'spesifikasi' => $request->spesifikasi,
-                'keunggulan'  => $request->keunggulan,
-                'tips'        => $request->tips,
+                'keunggulan' => $request->keunggulan,
+                'tips' => $request->tips,
             ]);
 
             /**
-             * UPLOAD GAMBAR
+             * MULTIPLE UPLOAD
              */
             if ($request->hasFile('gambar')) {
 
-                $file = $request->file('gambar');
-
-                $originalName = $this->sanitizeFilename(
-                    $file->getClientOriginalName()
+                $uploadedFiles = $this->uploadImages(
+                    $request->file('gambar')
                 );
 
-                $filename = time() . '_' . $originalName;
-
-                // Buat folder jika belum ada
-                $uploadPath = public_path('uploads/vespa-pedia');
-
-                if (!file_exists($uploadPath)) {
-                    mkdir($uploadPath, 0777, true);
-                }
-
-                $file->move($uploadPath, $filename);
-
-                $data['gambar'] = $filename;
+                $data['gambar'] = json_encode($uploadedFiles);
             }
 
             $pedia = VespaPedia::create($data);
 
-            // Tambahkan URL gambar
-            $pedia->gambar_url = $pedia->gambar
-                ? url('uploads/vespa-pedia/' . $pedia->gambar)
-                : null;
+            $pedia->gambar_url = $this->buildGambarUrl($pedia);
 
             return response()->json([
                 'message' => 'Konten berhasil ditambahkan',
-                'data'    => $pedia
+                'data' => $pedia
             ], 201);
-
         } catch (\Exception $e) {
 
-            Log::error('Error in VespaPedia store: ' . $e->getMessage());
+            Log::error('Error store VespaPedia: ' . $e->getMessage());
 
             return response()->json([
-                'message' => 'Gagal menambahkan konten',
-                'error'   => $e->getMessage()
+                'message' => 'Gagal menambahkan data',
+                'error' => $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * SHOW DETAIL
+     * Build gambar_url array dari JSON string gambar
      */
-    public function show(int $id)
-    {
-        try {
+private function buildGambarUrl(VespaPedia $model): array
+{
+    $gambar = json_decode($model->gambar, true);
+    if (!$gambar || !is_array($gambar)) return [];
 
-            $pedia = VespaPedia::with('jenisMotor')->find($id);
+    // Ambil base URL dari request yang masuk, bukan dari config
+    $baseUrl = request()->getSchemeAndHttpHost();
 
-            if (!$pedia) {
-                return response()->json([
-                    'message' => 'Konten tidak ditemukan'
-                ], 404);
-            }
-
-            // Tambahkan URL gambar
-            $pedia->gambar_url = $pedia->gambar
-                ? url('uploads/vespa-pedia/' . $pedia->gambar)
-                : null;
-
-            return response()->json($pedia);
-
-        } catch (\Exception $e) {
-
-            Log::error('Error in VespaPedia show: ' . $e->getMessage());
-
-            return response()->json([
-                'message' => 'Gagal mengambil detail konten',
-                'error'   => $e->getMessage()
-            ], 500);
-        }
-    }
+    return array_map(function($img) use ($baseUrl) {
+        return $baseUrl . '/uploads/vespa-pedia/' . $img;
+    }, $gambar);
+}
 
     /**
-     * UPDATE DATA
+     * UPDATE
      */
     public function update(Request $request, int $id)
     {
@@ -198,18 +187,22 @@ class VespaPediaController extends Controller
             $pedia = VespaPedia::findOrFail($id);
 
             $request->validate([
-                'judul'          => 'nullable|max:255',
-                'jenis_motor_id' => 'nullable|integer|exists:jenis_motor,id_jenis_motor',
-                'spesifikasi'    => 'nullable|string',
-                'keunggulan'     => 'nullable|string',
-                'tips'           => 'nullable|string',
-                'gambar'         => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
-                'urutan'         => 'nullable|integer|min:0',
-                'status'         => 'nullable|in:draft,published',
+                'judul' => 'nullable|max:255',
+                'deskripsi' => 'nullable|string',
+                'jenis_motor_id' => 'nullable|integer',
+                'spesifikasi' => 'nullable|string',
+                'keunggulan' => 'nullable|string',
+                'tips' => 'nullable|string',
+
+                'gambar.*' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+
+                'urutan' => 'nullable|integer|min:0',
+                'status' => 'nullable|in:draft,published',
             ]);
 
             $data = $request->only([
                 'judul',
+                'deskripsi',
                 'jenis_motor_id',
                 'spesifikasi',
                 'keunggulan',
@@ -218,11 +211,11 @@ class VespaPediaController extends Controller
                 'status'
             ]);
 
-            // UPDATE KONTEN JSON
             $data['konten'] = json_encode([
+                'deskripsi' => $request->deskripsi,
                 'spesifikasi' => $request->spesifikasi,
-                'keunggulan'  => $request->keunggulan,
-                'tips'        => $request->tips,
+                'keunggulan' => $request->keunggulan,
+                'tips' => $request->tips,
             ]);
 
             /**
@@ -230,63 +223,62 @@ class VespaPediaController extends Controller
              */
             if ($request->hasFile('gambar')) {
 
-                // Hapus gambar lama
-                if ($pedia->gambar) {
+                // hapus gambar lama
+                $oldImages = json_decode($pedia->gambar, true);
 
-                    $oldPath = public_path(
-                        'uploads/vespa-pedia/' . $pedia->gambar
-                    );
+                if ($oldImages && is_array($oldImages)) {
 
-                    if (file_exists($oldPath)) {
-                        unlink($oldPath);
+                    foreach ($oldImages as $img) {
+
+                        $oldPath = public_path(
+                            'uploads/vespa-pedia/' . $img
+                        );
+
+                        if (file_exists($oldPath)) {
+                            unlink($oldPath);
+                        }
                     }
                 }
 
-                $file = $request->file('gambar');
-
-                $originalName = $this->sanitizeFilename(
-                    $file->getClientOriginalName()
+                $uploadedFiles = $this->uploadImages(
+                    $request->file('gambar')
                 );
 
-                $filename = time() . '_' . $originalName;
-
-                // Buat folder jika belum ada
-                $uploadPath = public_path('uploads/vespa-pedia');
-
-                if (!file_exists($uploadPath)) {
-                    mkdir($uploadPath, 0777, true);
-                }
-
-                $file->move($uploadPath, $filename);
-
-                $data['gambar'] = $filename;
+                $data['gambar'] = json_encode($uploadedFiles);
             }
 
             $pedia->update($data);
 
-            // Tambahkan URL gambar
-            $pedia->gambar_url = $pedia->gambar
-                ? url('uploads/vespa-pedia/' . $pedia->gambar)
-                : null;
+            $pedia->refresh(); // pastikan data terbaru
+            $pedia->gambar_url = $this->buildGambarUrl($pedia);
 
             return response()->json([
                 'message' => 'Konten berhasil diupdate',
-                'data'    => $pedia
+                'data' => $pedia
             ]);
-
         } catch (\Exception $e) {
 
-            Log::error('Error in VespaPedia update: ' . $e->getMessage());
+            Log::error('Error update VespaPedia: ' . $e->getMessage());
 
             return response()->json([
-                'message' => 'Gagal mengupdate konten',
-                'error'   => $e->getMessage()
+                'message' => 'Gagal update data',
+                'error' => $e->getMessage()
             ], 500);
         }
     }
 
+    public function show(int $id)
+    {
+        try {
+            $pedia = VespaPedia::with('jenisMotor')->findOrFail($id);
+            $pedia->gambar_url = $this->buildGambarUrl($pedia);
+            return response()->json($pedia);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Data tidak ditemukan'], 404);
+        }
+    }
     /**
-     * DELETE DATA
+     * DELETE
      */
     public function destroy(int $id)
     {
@@ -300,15 +292,19 @@ class VespaPediaController extends Controller
                 ], 404);
             }
 
-            // Hapus gambar
-            if ($pedia->gambar) {
+            $images = json_decode($pedia->gambar, true);
 
-                $imagePath = public_path(
-                    'uploads/vespa-pedia/' . $pedia->gambar
-                );
+            if ($images && is_array($images)) {
 
-                if (file_exists($imagePath)) {
-                    unlink($imagePath);
+                foreach ($images as $img) {
+
+                    $imagePath = public_path(
+                        'uploads/vespa-pedia/' . $img
+                    );
+
+                    if (file_exists($imagePath)) {
+                        unlink($imagePath);
+                    }
                 }
             }
 
@@ -317,14 +313,13 @@ class VespaPediaController extends Controller
             return response()->json([
                 'message' => 'Konten berhasil dihapus'
             ]);
-
         } catch (\Exception $e) {
 
-            Log::error('Error in VespaPedia destroy: ' . $e->getMessage());
+            Log::error('Error delete VespaPedia: ' . $e->getMessage());
 
             return response()->json([
-                'message' => 'Gagal menghapus konten',
-                'error'   => $e->getMessage()
+                'message' => 'Gagal menghapus data',
+                'error' => $e->getMessage()
             ], 500);
         }
     }

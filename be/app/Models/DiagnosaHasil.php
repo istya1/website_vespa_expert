@@ -8,13 +8,12 @@ class DiagnosaHasil extends Model
 {
     protected $table = 'diagnosa_hasil';
     protected $primaryKey = 'id_diagnosa_hasil';
-    
+
     public $timestamps = true;
 
     protected $fillable = [
         'id_diagnosa',
-        'kode_kerusakan',  
-        'prioritas',
+        'kode_kerusakan',
         'persentase_kecocokan',
         'tingkat_kepastian',
         'gejala_cocok',
@@ -23,7 +22,6 @@ class DiagnosaHasil extends Model
 
     protected $casts = [
         'persentase_kecocokan' => 'float',
-        'prioritas' => 'integer',
         'gejala_cocok' => 'integer',
         'total_gejala_aturan' => 'integer',
     ];

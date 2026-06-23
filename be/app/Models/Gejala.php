@@ -8,8 +8,8 @@ class Gejala extends Model
 {
     protected $table = 'gejala';
     protected $primaryKey = 'kode_gejala';
-    public $incrementing = false;
-    protected $keyType = 'string';
+    public $incrementing = false;   // karena bukan angka auto (1,2,3,...)
+    protected $keyType = 'string';  // karena tipe datanya string, bukan integer
     public $timestamps = false;
 
     protected $fillable = [
@@ -17,7 +17,6 @@ class Gejala extends Model
         'nama_gejala',
         'jenis_motor_id',
         'kategori_id',
-        'bobot',
     ];
 
     // Relasi ke kerusakan melalui aturan
@@ -32,6 +31,7 @@ class Gejala extends Model
             'kode_kerusakan'
         );
     }
+
     public function kategori()
     {
         return $this->belongsTo(Kategori::class, 'kategori_id');
