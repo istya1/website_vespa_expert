@@ -8,8 +8,6 @@ use App\Http\Controllers\GejalaController;
 use App\Http\Controllers\KerusakanController;
 use App\Http\Controllers\DiagnosaController;
 use App\Http\Controllers\VespaPediaController;
-use App\Http\Controllers\ServiceTemplateController;
-use App\Http\Controllers\UserServiceReminderController;
 use App\Http\Controllers\AturanController;
 use App\Http\Controllers\KerusakanDiagnosisController;
 use App\Http\Controllers\SuperAdminController;
@@ -121,14 +119,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('{id}', [DiagnosaController::class, 'update']);
         Route::delete('{id}', [DiagnosaController::class, 'destroy']);
     });
-
-
-    // SERVICE TEMPLATE
-    Route::apiResource('service-templates', ServiceTemplateController::class);
-
-    // USER REMINDER
-    Route::get('user-reminders', [UserServiceReminderController::class, 'index']);
-    Route::post('user-reminders/{id}/send-notification', [UserServiceReminderController::class, 'sendNotification']);
 
     // KERUSAKAN DIAGNOSIS
     Route::prefix('mobile')->middleware('auth:sanctum')->group(function () {
