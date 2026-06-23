@@ -40,17 +40,17 @@ const MENU_ITEMS: MenuItem[] = [
     ],
   },
   {
-    name: 'Layanan & Informasi', icon: Smartphone,
+    name: 'Manajemen Konten', icon: Smartphone,
     submenu: [
-      { name: 'Bengkel', path: '/konten-mobile/bengkel', icon: Database },
-      { name: 'Vespa Pedia', path: '/konten-mobile/vespa-pedia', icon: BookOpen },
+      { name: 'Informasi Bengkel', path: '/konten-mobile/bengkel', icon: Database },
+      { name: 'Informasi Vespa (Pedia)', path: '/konten-mobile/vespa-pedia', icon: BookOpen },
     ],
   },
   {
     name: 'Riwayat Aktifitas', icon: Clock,
     submenu: [
       { name: 'Riwayat Diagnosa', path: '/riwayat/riwayat-diagnosa', icon: Activity },
-      { name: 'Riwayat Service Berkala', path: '/riwayat/riwayat-service', icon: CalendarCheck },
+      { name: 'Riwayat Ganti Oli', path: '/riwayat/riwayat-service', icon: CalendarCheck },
     ],
   },
 ];
@@ -63,12 +63,19 @@ interface SidebarProps {
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const [role, setRole] = useState<string | null>(null);
-  const [openMenus, setOpenMenus] = useState<string[]>(['Data Aturan']);
+  const [openMenus, setOpenMenus] = useState<string[]>([]);
 
   useEffect(() => {
-    const user = AuthService.getUser();
-    setRole(user?.role || null);
-  }, []);
+    MENU_ITEMS.forEach(item => {
+      if (
+        item.submenu?.some(sub => pathname === sub.path)
+      ) {
+        setOpenMenus(prev =>
+          prev.includes(item.name) ? prev : [...prev, item.name]
+        );
+      }
+    });
+  }, [pathname]);
 
   // Tutup saat resize ke desktop
   useEffect(() => {
@@ -90,6 +97,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       prev.includes(menuName) ? prev.filter(i => i !== menuName) : [...prev, menuName]
     );
   };
+
+  useEffect(() => {
+  const user = AuthService.getUser();
+  setRole(user?.role ?? null); // sesuaikan field-nya dengan tipe User kamu
+}, []);
 
   const isActive = (path?: string) => path && pathname === path;
 
@@ -116,11 +128,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         <div key={item.name} className="mb-0.5">
           <button
             onClick={() => toggleMenu(item.name)}
-            className={`flex items-center justify-between w-full px-4 py-2.5 rounded-lg transition-all duration-150 ${
-              isOpen || isParentActive
+            className={`flex items-center justify-between w-full px-4 py-2.5 rounded-lg transition-all duration-150 ${isOpen || isParentActive
                 ? 'bg-primary-50 text-primary-700'
                 : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-            }`}
+              }`}
           >
             <div className="flex items-center gap-3">
               <Icon size={18} className="flex-shrink-0" />
@@ -142,11 +153,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     key={subItem.path}
                     href={subItem.path || '#'}
                     onClick={onClose}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
-                      active
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${active
                         ? 'bg-primary-600 text-white shadow-sm'
                         : 'text-gray-600 hover:bg-primary-50 hover:text-primary-700'
-                    }`}
+                      }`}
                   >
                     <SubIcon size={16} className="flex-shrink-0" />
                     <span>{subItem.name}</span>
@@ -164,11 +174,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         key={item.path}
         href={item.path || '#'}
         onClick={onClose}
-        className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-0.5 text-sm transition-all duration-150 ${
-          isActive(item.path)
+        className={`flex items-center gap-3 px-4 py-2.5 rounded-lg mb-0.5 text-sm transition-all duration-150 ${isActive(item.path)
             ? 'bg-primary-600 text-white shadow-sm'
             : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 font-medium'
-        }`}
+          }`}
       >
         <Icon size={18} className="flex-shrink-0" />
         <span className="font-medium">{item.name}</span>

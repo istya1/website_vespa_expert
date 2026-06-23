@@ -12,17 +12,19 @@ const ITEMS_PER_PAGE = 5;
 
 interface FormData {
   judul: string;
+  deskripsi: string;
   jenis_motor_id: number;
   spesifikasi: string;
   keunggulan: string;
   tips: string;
-  urutan: number;
-  status: string;
-  gambar: File | null;
+  // urutan: number;
+  // status: string;
+  gambar: File[];
 }
 
 interface FormErrors {
   judul?: string;
+  deskripsi?: string;
   spesifikasi?: string;
   keunggulan?: string;
   tips?: string;
@@ -34,6 +36,9 @@ const validateForm = (data: FormData): FormErrors => {
     errors.judul = 'Judul tidak boleh kosong';
   } else if (data.judul.trim().length < 5) {
     errors.judul = 'Judul minimal 5 karakter';
+  }
+  if (!data.deskripsi?.trim()) {
+    errors.deskripsi = 'Deskripsi tidak boleh kosong';
   }
   if (!data.spesifikasi.trim()) {
     errors.spesifikasi = 'Spesifikasi tidak boleh kosong';
@@ -63,19 +68,20 @@ export default function VespaPediaPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
 
   const [formData, setFormData] = useState<FormData>({
     judul: '',
+    deskripsi: '',
     jenis_motor_id: 0,
     spesifikasi: '',
     keunggulan: '',
     tips: '',
-    urutan: 0,
-    status: 'published',
-    gambar: null,
+    // urutan: 0,
+    // status: 'published',
+    gambar: [],
   });
 
   useEffect(() => {
@@ -100,10 +106,17 @@ export default function VespaPediaPage() {
     }
   };
 
+  const getImageUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url; // sudah lengkap
+    return `${process.env.NEXT_PUBLIC_API_URL}/${url}`; // tambah base URL
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
       const data = await VespaPediaService.getAll();
+      console.log('gambar_url sample:', data[0]?.gambar_url);
       setPediaList(data);
     } catch {
       toast.error('Gagal memuat data Vespa Pedia');
@@ -117,16 +130,21 @@ export default function VespaPediaPage() {
     if (item) {
       setEditMode(true);
       setSelectedId(item.id);
-      setCurrentImage(item.gambar_url ?? null);
+      setCurrentImage(
+        Array.isArray(item.gambar_url)
+          ? (item.gambar_url[0] ?? null)
+          : (item.gambar_url ?? null)
+      );
       setFormData({
         judul: item.judul,
+        deskripsi: item.deskripsi ?? '',
         jenis_motor_id: item.jenis_motor_id ?? activeTab,
         spesifikasi: item.spesifikasi ?? '',
         keunggulan: item.keunggulan ?? '',
         tips: item.tips ?? '',
-        urutan: item.urutan,
-        status: item.status,
-        gambar: null,
+        // urutan: item.urutan,
+        // status: item.status,
+        gambar: [],
       });
     } else {
       setEditMode(false);
@@ -134,44 +152,58 @@ export default function VespaPediaPage() {
       setCurrentImage(null);
       setFormData({
         judul: '',
+        deskripsi: '',
         jenis_motor_id: activeTab,
         spesifikasi: '',
         keunggulan: '',
         tips: '',
-        urutan: 0,
-        status: 'published',
-        gambar: null,
+        // urutan: 0,
+        // status: 'published',
+        gambar: [],
       });
     }
-    setPreviewImage(null);
+    setPreviewImages([]);
     setShowModal(true);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedId(0);
-    setPreviewImage(null);
+    setPreviewImages([]);
     setCurrentImage(null);
     setFormErrors({});
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const newFileName = file.name
-        .replace(/\s+/g, '_')
-        .replace(/[^\w\s.-]/gi, '_')
-        .toLowerCase();
-      const renamedFile = new File([file], newFileName, { type: file.type });
-      setFormData({ ...formData, gambar: renamedFile });
-      setPreviewImage(URL.createObjectURL(file));
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files).map(file => {
+        const newFileName = file.name
+          .replace(/\s+/g, '_')
+          .replace(/[^\w\s.-]/gi, '_')
+          .toLowerCase();
+        return new File([file], newFileName, { type: file.type });
+      });
+
+      const newPreviews = newFiles.map(f => URL.createObjectURL(f));
+
+      setFormData(prev => ({ ...prev, gambar: [...prev.gambar, ...newFiles] }));
+      setPreviewImages(prev => [...prev, ...newPreviews]);
     }
   };
 
-  const handleRemoveImage = () => {
-    setFormData({ ...formData, gambar: null });
-    setPreviewImage(null);
-    setCurrentImage(null);
+  const handleRemoveImage = (index: number) => {
+    const updatedImages = [...formData.gambar];
+    updatedImages.splice(index, 1);
+
+    const updatedPreviews = [...previewImages];
+    updatedPreviews.splice(index, 1);
+
+    setFormData({
+      ...formData,
+      gambar: updatedImages,
+    });
+
+    setPreviewImages(updatedPreviews);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -184,7 +216,13 @@ export default function VespaPediaPage() {
     const loadingToast = toast.loading(editMode ? 'Mengupdate...' : 'Menambahkan...');
     const data = new FormData();
     Object.entries(formData).forEach(([key, val]: any) => {
-      if (val !== null) data.append(key, val);
+      if (key === 'gambar') {
+        val.forEach((file: File) => {
+          data.append('gambar[]', file);
+        });
+      } else {
+        data.append(key, val);
+      }
     });
     if (editMode) data.append('_method', 'PUT');
     try {
@@ -261,7 +299,7 @@ export default function VespaPediaPage() {
                 setSearchQuery(e.target.value);
                 setCurrentPage(1);
               }}
-              placeholder="Cari judul atau status..."
+              placeholder="Cari judul konten ..."
               className="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none w-64"
             />
           </div>
@@ -310,18 +348,21 @@ export default function VespaPediaPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">
                     Judul
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">
+                    Deskripsi
+                  </th>
 
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">
                     Gambar
                   </th>
 
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">
+                  {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">
                     Status
                   </th>
 
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">
                     Urutan
-                  </th>
+                  </th> */}
 
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
                     Aksi
@@ -350,25 +391,33 @@ export default function VespaPediaPage() {
                         <span className="line-clamp-2">{p.judul}</span>
                       </td>
 
+                      <td className="px-6 py-4 text-sm text-gray-500 border-r border-b border-gray-300">
+                        <span className="line-clamp-2">{p.deskripsi}</span>
+                      </td>
+
                       <td className="px-6 py-4 whitespace-nowrap border-r border-b border-gray-300">
                         {p.gambar_url ? (
-                          <img
-                            src={p.gambar_url}
-                            alt={p.judul}
-                            className="h-32 w-48 object-cover rounded-lg border border-gray-200"
-                            onError={(e) => {
-                              e.currentTarget.src =
-                                'https://via.placeholder.com/480x320?text=Gagal+Dimuat';
-                            }}
-                          />
+                          <div className="flex gap-2 flex-wrap">
+                            {(Array.isArray(p.gambar_url) ? p.gambar_url : [p.gambar_url]).map((url, i) => (
+                              <img
+                                key={i}
+                                src={url}
+                                alt={`${p.judul} ${i + 1}`}
+                                className="h-20 w-28 object-cover rounded-lg border border-gray-200"
+                                onError={(e) => {
+                                  e.currentTarget.src = 'https://via.placeholder.com/480x320?text=Gagal+Dimuat';
+                                }}
+                              />
+                            ))}
+                          </div>
                         ) : (
-                          <div className="h-32 w-48 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-sm">
+                          <div className="h-20 w-28 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-sm">
                             Tidak ada gambar
                           </div>
                         )}
                       </td>
 
-                      <td className="px-6 py-4 whitespace-nowrap border-r border-b border-gray-300">
+                      {/* <td className="px-6 py-4 whitespace-nowrap border-r border-b border-gray-300">
                         <span
                           className={`px-3 py-1 text-xs font-semibold rounded-full ${p.status === 'published'
                             ? 'bg-green-100 text-green-800'
@@ -381,7 +430,7 @@ export default function VespaPediaPage() {
 
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center border-r border-b border-gray-300">
                         {p.urutan}
-                      </td>
+                      </td> */}
 
                       <td className="px-6 py-4 whitespace-nowrap text-center border-b border-gray-300">
                         <div className="flex items-center justify-center gap-2">
@@ -424,7 +473,9 @@ export default function VespaPediaPage() {
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
                       <p className="font-semibold text-gray-900">{p.judul}</p>
+                      <p className="text-sm text-gray-500 mt-1">{p.deskripsi}</p>
                     </div>
+
                     <div className="flex gap-2 ml-3">
                       <button onClick={() => handleOpenModal(p)} className="text-primary-600 p-1 hover:bg-primary-50 rounded transition-colors">
                         <Pencil size={18} />
@@ -435,20 +486,25 @@ export default function VespaPediaPage() {
                     </div>
                   </div>
                   {p.gambar_url && (
-                    <img
-                      src={p.gambar_url}
-                      alt={p.judul}
-                      className="w-full h-48 object-cover rounded-lg mt-2"
-                      onError={e => { e.currentTarget.src = 'https://via.placeholder.com/600x400?text=No+Image'; }}
-                    />
+                    <div className="flex gap-2 flex-wrap mt-2">
+                      {(Array.isArray(p.gambar_url) ? p.gambar_url : [p.gambar_url]).map((url, i) => (
+                        <img
+                          key={i}
+                          src={url}
+                          alt={`${p.judul} ${i + 1}`}
+                          className="w-full h-48 object-cover rounded-lg"
+                          onError={e => { e.currentTarget.src = 'https://via.placeholder.com/600x400?text=No+Image'; }}
+                        />
+                      ))}
+                    </div>
                   )}
-                  <div className="flex justify-between items-center text-sm mt-3">
+                  {/* <div className="flex justify-between items-center text-sm mt-3">
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${p.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                       }`}>
                       {p.status === 'published' ? 'Dipublikasi' : 'Draft'}
                     </span>
                     <span className="text-gray-500">Urutan: {p.urutan}</span>
-                  </div>
+                  </div> */}
                 </div>
               ))
             )}
@@ -512,6 +568,21 @@ export default function VespaPediaPage() {
                 {formErrors.judul && <p className="text-xs text-red-600 mt-1">⚠ {formErrors.judul}</p>}
               </div>
 
+              {/* Deskripsi */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Deskripsi <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={formData.deskripsi}
+                  onChange={e => { setFormData({ ...formData, deskripsi: e.target.value }); setFormErrors(p => ({ ...p, deskripsi: undefined })); }}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none resize-none text-sm ${formErrors.deskripsi ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                  rows={3}
+                  placeholder="Masukkan deskripsi konten"
+                />
+                {formErrors.deskripsi && <p className="text-xs text-red-600 mt-1">⚠ {formErrors.deskripsi}</p>}
+              </div>
+
               {/* Jenis Motor */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Jenis Motor</label>
@@ -570,34 +641,69 @@ export default function VespaPediaPage() {
               </div>
 
               {/* Upload Gambar */}
+              {/* Upload Gambar */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Gambar</label>
-                {!(previewImage || currentImage) ? (
-                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
-                    <div className="space-y-1 text-center">
-                      <Upload className="mx-auto h-10 w-10 text-gray-400" />
-                      <div className="flex text-sm text-gray-600 justify-center">
-                        <label htmlFor="file-upload" className="relative cursor-pointer rounded-md font-medium text-primary-600 hover:text-primary-500">
-                          <span>Upload file</span>
-                          <input id="file-upload" type="file" className="sr-only" accept="image/*" onChange={handleImageChange} />
-                        </label>
-                        <p className="pl-1">atau drag and drop</p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Gambar
+                </label>
+
+                {/* Preview Images */}
+                {previewImages.length > 0 && (
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    {previewImages.map((img: string, index: number) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={img}
+                          alt={`Preview ${index}`}
+                          className="w-full h-32 object-cover rounded-lg border"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full"
+                        >
+                          <X size={14} />
+                        </button>
                       </div>
-                      <p className="text-xs text-gray-500">PNG, JPG, WEBP maks. 2MB</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="relative mt-1">
-                    <img src={previewImage || currentImage || ''} alt="Preview" className="w-full h-48 object-cover rounded-lg border border-gray-200" />
-                    <button type="button" onClick={handleRemoveImage} className="absolute top-2 right-2 bg-red-600 text-white p-1.5 rounded-full hover:bg-red-700 transition-colors">
-                      <X size={14} />
-                    </button>
+                    ))}
                   </div>
                 )}
+
+                {/* Upload Area */}
+                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
+                  <div className="space-y-1 text-center">
+                    <Upload className="mx-auto h-10 w-10 text-gray-400" />
+
+                    <div className="flex text-sm text-gray-600 justify-center">
+                      <label
+                        htmlFor="file-upload"
+                        className="relative cursor-pointer rounded-md font-medium text-primary-600 hover:text-primary-500"
+                      >
+                        <span>Unggah file</span>
+
+                        <input
+                          id="file-upload"
+                          type="file"
+                          className="sr-only"
+                          accept="image/*"
+                          multiple
+                          onChange={handleImageChange}
+                        />
+                      </label>
+
+                      <p className="pl-1">atau seret dan lepas</p>
+                    </div>
+
+                    <p className="text-xs text-gray-500">
+                      PNG, JPG, WEBP maks. 2MB
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Urutan & Status */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Urutan</label>
                   <input
@@ -621,7 +727,7 @@ export default function VespaPediaPage() {
                     <option value="draft">Draft</option>
                   </select>
                 </div>
-              </div>
+              </div> */}
 
               <div className="flex gap-3 pt-2">
                 <button type="submit" className="flex-1 bg-primary-600 text-white py-2.5 rounded-lg hover:bg-primary-700 transition-colors text-sm">

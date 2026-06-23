@@ -6,28 +6,12 @@ import KategoriService, { Kategori } from '@/services/kategori-service';
 import toast from 'react-hot-toast';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
-const BOBOT_OPTIONS = [
-  { value: 1, label: '1 - Ringan (Indikasi Awal)' },
-  { value: 2, label: '2 - Sedang (Gangguan Performa)' },
-  { value: 3, label: '3 - Berat (Risiko Tinggi)' },
-];
-
-const getBobotBadge = (bobot: number) => {
-  if (bobot === 1) return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">1 - Ringan</span>;
-  if (bobot === 2) return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">2 - Sedang</span>;
-  if (bobot === 3) return <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">3 - Berat</span>;
-  return <span className="text-gray-400">-</span>;
-};
-
-// ── Validasi ──────────────────────────────────────────
 interface FormData {
   nama_kategori: string;
-  bobot_default: number;
 }
 
 interface FormErrors {
   nama_kategori?: string;
-  bobot_default?: string;
 }
 
 const validateForm = (data: FormData): FormErrors => {
@@ -37,10 +21,6 @@ const validateForm = (data: FormData): FormErrors => {
     errors.nama_kategori = 'Nama kategori tidak boleh kosong';
   } else if (data.nama_kategori.trim().length < 3) {
     errors.nama_kategori = 'Nama kategori minimal 3 karakter';
-  }
-
-  if (![1, 2, 3].includes(data.bobot_default)) {
-    errors.bobot_default = 'Bobot harus dipilih';
   }
 
   return errors;
@@ -56,13 +36,12 @@ export default function KategoriPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [deletingNama, setDeletingNama] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState('');       // ── Search
-  const [formErrors, setFormErrors] = useState<FormErrors>({}); // ── Validasi
+  const [searchQuery, setSearchQuery] = useState('');
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
   const ITEMS_PER_PAGE = 5;
 
   const [formData, setFormData] = useState<FormData>({
     nama_kategori: '',
-    bobot_default: 1,
   });
 
   useEffect(() => {
@@ -83,18 +62,17 @@ export default function KategoriPage() {
   };
 
   const handleOpenModal = (kategori?: Kategori) => {
-    setFormErrors({}); // reset error saat buka modal
+    setFormErrors({});
     if (kategori) {
       setEditMode(true);
       setSelectedId(kategori.id);
       setFormData({
         nama_kategori: kategori.nama_kategori,
-        bobot_default: kategori.bobot_default ?? 1,
       });
     } else {
       setEditMode(false);
       setSelectedId(null);
-      setFormData({ nama_kategori: '', bobot_default: 1 });
+      setFormData({ nama_kategori: '' });
     }
     setShowModal(true);
   };
@@ -108,7 +86,6 @@ export default function KategoriPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Jalankan validasi dulu
     const errors = validateForm(formData);
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
@@ -159,7 +136,6 @@ export default function KategoriPage() {
     setDeletingNama('');
   };
 
-  // Filter berdasarkan search
   const filteredKategori = kategoriList.filter((k) =>
     searchQuery.trim() === '' ||
     k.nama_kategori.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -174,13 +150,13 @@ export default function KategoriPage() {
   return (
     <DashboardLayout title="Data Kategori">
 
-      {/* Header: judul + search + tombol tambah */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Daftar Kategori Kerusakan</h2>
-        <p className="text-gray-600 mt-1">Data kategori kerusakan untuk menginputkan informasi kategori berdasarkan jenis kerusakan</p>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">Daftar Kategori Kerusakan</h2>
+          <p className="text-gray-600 mt-1">Data kategori kerusakan untuk menginputkan informasi kategori berdasarkan jenis kerusakan</p>
+        </div>
 
         <div className="flex items-center gap-2">
-          {/* Search bar */}
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -202,7 +178,6 @@ export default function KategoriPage() {
         </div>
       </div>
 
-      {/* Table */}
       {loading ? (
         <div className="flex flex-col justify-center items-center h-64 gap-3">
           <img
@@ -222,14 +197,13 @@ export default function KategoriPage() {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border-r border-b border-gray-300">ID</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border-r border-b border-gray-300">Nama Kategori</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase border-r border-b border-gray-300">Bobot</th>
                 <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase border-r border-b border-gray-300">Aksi</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200 border-r border-gray-300">
               {currentKategori.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500 border-r border-b border-gray-300 ">
+                  <td colSpan={3} className="px-6 py-8 text-center text-gray-500 border-r border-b border-gray-300 ">
                     {searchQuery
                       ? `Tidak ada kategori yang cocok dengan "${searchQuery}"`
                       : 'Tidak ada data kategori'}
@@ -240,7 +214,6 @@ export default function KategoriPage() {
                   <tr key={k.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 border-r border-gray-300">{k.id}</td>
                     <td className="px-6 py-4 text-sm text-gray-900 border-r border-gray-300">{k.nama_kategori}</td>
-                    <td className="px-6 py-4 text-sm border-r border-gray-300">{getBobotBadge(k.bobot_default)}</td>
                     <td className="px-6 py-4 text-sm text-center border-r border-gray-300">
                       <div className="flex justify-center gap-2">
                         <button onClick={() => handleOpenModal(k)} className="text-primary-600 hover:text-primary-800">
@@ -259,7 +232,6 @@ export default function KategoriPage() {
         </div>
       )}
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-2 mt-4">
           <button
@@ -311,7 +283,6 @@ export default function KategoriPage() {
                 </div>
               )}
 
-              {/* Nama Kategori */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nama Kategori <span className="text-red-500">*</span>
@@ -329,51 +300,6 @@ export default function KategoriPage() {
                 />
                 {formErrors.nama_kategori && (
                   <p className="text-xs text-red-600 mt-1">⚠ {formErrors.nama_kategori}</p>
-                )}
-              </div>
-
-              {/* Bobot */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Bobot <span className="text-red-500">*</span>
-                </label>
-                <div className="flex flex-col gap-2">
-                  {BOBOT_OPTIONS.map((opt) => (
-                    <label
-                      key={opt.value}
-                      className={`flex items-center gap-3 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${formData.bobot_default === opt.value
-                        ? opt.value === 1
-                          ? 'border-green-500 bg-green-50'
-                          : opt.value === 2
-                            ? 'border-yellow-500 bg-yellow-50'
-                            : 'border-red-500 bg-red-50'
-                        : 'border-gray-200 hover:bg-gray-50'
-                        }`}
-                    >
-                      <input
-                        type="radio"
-                        name="bobot"
-                        value={opt.value}
-                        checked={formData.bobot_default === opt.value}
-                        onChange={() => {
-                          setFormData({ ...formData, bobot_default: opt.value });
-                          setFormErrors((prev) => ({ ...prev, bobot_default: undefined }));
-                        }}
-                        className="accent-primary-600"
-                      />
-                      <span className={`text-sm font-medium ${formData.bobot_default === opt.value
-                        ? opt.value === 1 ? 'text-green-700'
-                          : opt.value === 2 ? 'text-yellow-700'
-                            : 'text-red-700'
-                        : 'text-gray-700'
-                        }`}>
-                        {opt.label}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-                {formErrors.bobot_default && (
-                  <p className="text-xs text-red-600 mt-1">⚠ {formErrors.bobot_default}</p>
                 )}
               </div>
 

@@ -176,8 +176,10 @@ export default function AturanPage() {
     <DashboardLayout title="Data Aturan">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Daftar Aturan</h2>
-        <p className="text-gray-600 mt-1">Data aturan untuk menginputkan data gejala, kerusakan dan solusi berdasarkan base knowladge</p>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">Daftar Aturan</h2>
+          <p className="text-gray-600 mt-1">Data aturan untuk menginputkan data gejala, kerusakan dan solusi berdasarkan base knowledge</p>
+        </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           {/* Search bar */}
           <div className="relative flex-1 sm:w-64">

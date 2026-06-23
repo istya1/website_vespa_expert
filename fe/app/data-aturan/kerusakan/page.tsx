@@ -10,14 +10,12 @@ import toast from 'react-hot-toast';
 interface FormData {
   nama_kerusakan: string;
   solusi: string;
-  kategori: string;
-  jenis_motor_id: number;  // ← ganti dari jenis_motor: JenisMotor
+  jenis_motor_id: number;
 }
 
 interface FormErrors {
   nama_kerusakan?: string;
   solusi?: string;
-  kategori?: string;
 }
 
 const validateForm = (data: FormData): FormErrors => {
@@ -26,9 +24,6 @@ const validateForm = (data: FormData): FormErrors => {
     errors.nama_kerusakan = 'Nama kerusakan tidak boleh kosong';
   } else if (data.nama_kerusakan.trim().length < 5) {
     errors.nama_kerusakan = 'Nama kerusakan minimal 5 karakter';
-  }
-  if (!data.kategori) {
-    errors.kategori = 'Kategori harus dipilih';
   }
   if (!data.solusi.trim()) {
     errors.solusi = 'Solusi tidak boleh kosong';
@@ -46,8 +41,8 @@ export default function KerusakanPage() {
   const [selectedKerusakan, setSelectedKerusakan] = useState<string>('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletingKode, setDeletingKode] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<number>(0);              // ← pakai id
-  const [jenisMotorList, setJenisMotorList] = useState<JenisMotor[]>([]); // ← dinamis
+  const [activeTab, setActiveTab] = useState<number>(0);
+  const [jenisMotorList, setJenisMotorList] = useState<JenisMotor[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [formErrors, setFormErrors] = useState<FormErrors>({});
@@ -56,8 +51,7 @@ export default function KerusakanPage() {
   const [formData, setFormData] = useState<FormData>({
     nama_kerusakan: '',
     solusi: '',
-    kategori: '',
-    jenis_motor_id: 0,  // ← ganti
+    jenis_motor_id: 0,
   });
 
   useEffect(() => {
@@ -99,16 +93,14 @@ export default function KerusakanPage() {
       setFormData({
         nama_kerusakan: kerusakan.nama_kerusakan,
         solusi: kerusakan.solusi || '',
-        kategori: kerusakan.kategori || '',
-        jenis_motor_id: kerusakan.jenis_motor_id ?? activeTab,  // ← ganti
+        jenis_motor_id: kerusakan.jenis_motor_id ?? activeTab,
       });
     } else {
       setEditMode(false);
       setFormData({
         nama_kerusakan: '',
         solusi: '',
-        kategori: '',
-        jenis_motor_id: activeTab,  // ← otomatis tab aktif
+        jenis_motor_id: activeTab,
       });
     }
     setShowModal(true);
@@ -175,12 +167,11 @@ export default function KerusakanPage() {
   };
 
   const filteredKerusakan = kerusakanList
-    .filter((k) => k.jenis_motor_id === activeTab)  // ← filter by id
+    .filter((k) => k.jenis_motor_id === activeTab)
     .filter((k) =>
       searchQuery.trim() === '' ||
       k.nama_kerusakan?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      k.kode_kerusakan?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      k.kategori?.toLowerCase().includes(searchQuery.toLowerCase())
+      k.kode_kerusakan?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
   const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
@@ -194,10 +185,13 @@ export default function KerusakanPage() {
     <DashboardLayout title="Data Kerusakan">
 
       <div className="flex flex-row items-center justify-between gap-3 mb-6 flex-wrap">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
-          Daftar Kerusakan
-        </h2>
-        <p className="text-gray-600 mt-1">Data kerusakan untuk menginputkan informasi kerusakan berdasarkan jenis motor</p>
+
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
+            Daftar Kerusakan
+          </h2>
+          <p className="text-gray-600 mt-1">Data kerusakan </p>
+        </div>
 
         <div className="flex flex-row items-center gap-2">
           <div className="relative">
@@ -228,7 +222,6 @@ export default function KerusakanPage() {
         </div>
       </div>
 
-      {/* ── Tabs dinamis dari API ── */}
       <div className="border-b border-gray-200 mb-6 overflow-x-auto">
         <nav className="-mb-px flex space-x-4 sm:space-x-8 min-w-max">
           {jenisMotorList.map((jm) => (
@@ -259,7 +252,6 @@ export default function KerusakanPage() {
                 <tr>
                   <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">Kode</th>
                   <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">Nama Kerusakan</th>
-                  <th className="hidden md:table-cell px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">Kategori</th>
                   <th className="hidden lg:table-cell px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">Solusi</th>
                   <th className="px-4 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">Aksi</th>
                 </tr>
@@ -267,7 +259,7 @@ export default function KerusakanPage() {
               <tbody className="bg-white divide-y divide-gray-200 border-r border-gray-300">
                 {currentKerusakan.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                    <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
                       {searchQuery
                         ? `Tidak ada kerusakan yang cocok dengan "${searchQuery}"`
                         : `Tidak ada data kerusakan untuk ${activeMotorName}`}
@@ -281,18 +273,6 @@ export default function KerusakanPage() {
                       </td>
                       <td className="px-4 sm:px-6 py-4 text-sm text-gray-900 max-w-[160px] sm:max-w-xs border-r border-gray-300">
                         <span className="line-clamp-2">{kerusakan.nama_kerusakan}</span>
-                        {kerusakan.kategori && (
-                          <span className="md:hidden mt-1 inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                            {kerusakan.kategori}
-                          </span>
-                        )}
-                      </td>
-                      <td className="hidden md:table-cell px-4 sm:px-6 py-4 text-sm text-gray-900 border-r border-gray-300">
-                        {kerusakan.kategori ? (
-                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                            {kerusakan.kategori}
-                          </span>
-                        ) : '-'}
                       </td>
                       <td className="hidden lg:table-cell px-4 sm:px-6 py-4 text-sm text-gray-600 max-w-xs border-r border-b border-gray-300 align-top">
                         {kerusakan.solusi ? (
@@ -367,24 +347,6 @@ export default function KerusakanPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kategori <span className="text-red-500">*</span></label>
-                <select
-                  value={formData.kategori}
-                  onChange={(e) => { setFormData({ ...formData, kategori: e.target.value }); setFormErrors((p) => ({ ...p, kategori: undefined })); }}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none bg-white ${formErrors.kategori ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
-                >
-                  <option value="">-- Pilih Kategori --</option>
-                  <option value="Mesin">Mesin</option>
-                  <option value="CVT">CVT</option>
-                  <option value="Kelistrikan">Kelistrikan</option>
-                  <option value="Rem & Keselamatan">Rem & Keselamatan</option>
-                  <option value="Handling/Suspensi">Handling/Suspensi</option>
-                  <option value="Injeksi/Fuel System">Injeksi/Fuel System</option>
-                </select>
-                {formErrors.kategori && <p className="text-xs text-red-600 mt-1">⚠ {formErrors.kategori}</p>}
-              </div>
-
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Solusi <span className="text-red-500">*</span></label>
                 <textarea
                   value={formData.solusi}
@@ -396,7 +358,6 @@ export default function KerusakanPage() {
                 {formErrors.solusi && <p className="text-xs text-red-600 mt-1">⚠ {formErrors.solusi}</p>}
               </div>
 
-              {/* Jenis Motor: tampil nama, value pakai id */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Jenis Motor</label>
                 <input

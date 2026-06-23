@@ -13,7 +13,8 @@ export default function AdminPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [editMode, setEditMode] = useState(false);
-
+  // Tambah state
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const itemsPerPage = 5;
   const validateForm = () => {
     const errors: FormErrors = {};
@@ -93,6 +94,44 @@ export default function AdminPage() {
       setLoading(false);
     }
   };
+  const handleEdit = (user: User) => {
+    setEditingUser(user);
+    setEditMode(true);
+    setFormData({
+      nama: user.nama,
+      email: user.email,
+      password: '',
+      alamat: user.alamat ?? '',
+    });
+    setFormErrors({});
+    setShowModal(true);
+  };
+
+  const handleEditAdmin = async () => {
+    const errors = validateForm();
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+
+    const loadingToast = toast.loading('Menyimpan perubahan...');
+    try {
+      await UserService.update(Number(editingUser!.id_user), {
+        nama: formData.nama.trim(),
+        alamat: formData.alamat.trim(),
+        ...(formData.password ? { password: formData.password } : {}),
+      });
+      toast.success('Admin berhasil diperbarui', { id: loadingToast });
+      setShowModal(false);
+      setEditMode(false);
+      setEditingUser(null);
+      setFormData({ nama: '', email: '', password: '', alamat: '' });
+      setFormErrors({});
+      fetchAdmins();
+    } catch {
+      toast.error('Gagal memperbarui admin', { id: loadingToast });
+    }
+  };
 
   const filteredAdmins = adminList.filter((user) => {
     const search = searchQuery.toLowerCase();
@@ -148,53 +187,14 @@ export default function AdminPage() {
   };
 
   const handleAddAdmin = async () => {
-
     const errors = validateForm();
-
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       return;
     }
 
+    const loadingToast = toast.loading('Menyimpan admin...');
     try {
-
-      await UserService.create({
-        ...formData,
-        role: 'admin'
-      });
-
-      toast.success('Admin berhasil ditambahkan');
-
-      setShowModal(false);
-
-      setFormData({
-        nama: '',
-        email: '',
-        password: '',
-        alamat: '',
-      });
-
-      setFormErrors({});
-
-      fetchAdmins();
-
-    } catch (error: any) {
-
-      console.error("Tambah admin error:", error.response?.data);
-
-      if (error.response?.data?.errors) {
-        Object.values(error.response.data.errors).forEach((msg: any) => {
-          toast.error(msg[0]);
-        });
-      } else {
-        toast.error('Gagal menambah admin');
-      }
-
-    }
-
-
-    try {
-      const loadingToast = toast.loading('Menyimpan admin...');
       await UserService.create({
         nama: formData.nama.trim(),
         email: formData.email.trim(),
@@ -202,12 +202,22 @@ export default function AdminPage() {
         alamat: formData.alamat.trim(),
         role: 'admin',
       });
+
       toast.success('Admin berhasil ditambahkan', { id: loadingToast });
       setShowModal(false);
       setFormData({ nama: '', email: '', password: '', alamat: '' });
+      setFormErrors({});
       fetchAdmins();
-    } catch {
-      toast.error('Gagal menambahkan admin');
+
+    } catch (error: any) {
+      if (error.response?.data?.errors) {
+        Object.values(error.response.data.errors).forEach((msg: any) => {
+          toast.error(msg[0]);
+        });
+        toast.dismiss(loadingToast);
+      } else {
+        toast.error('Gagal menambah admin', { id: loadingToast });
+      }
     }
   };
 
@@ -265,102 +275,104 @@ export default function AdminPage() {
         </div>
 
         {/* TABLE */}
-      <div className="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
-  {loading ? (
-    <div className="flex flex-col justify-center items-center h-64 gap-3">
-      <img src="/asset/load.png" alt="Loading" className="w-44 h-28 animate-pulse" />
-      <p className="text-sm text-gray-500">Memuat data...</p>
-    </div>
-  ) : adminList.length === 0 ? (
-    <div className="py-12 text-center text-gray-500">
-      Tidak ada data admin saat ini
-    </div>
-  ) : (
-    <div className="overflow-x-auto">
-      <table className="min-w-full border border-gray-300 border-collapse">
+        <div className="bg-white shadow-sm border border-gray-200 rounded-xl overflow-hidden">
+          {loading ? (
+            <div className="flex flex-col justify-center items-center h-64 gap-3">
+              <img src="/asset/load.png" alt="Loading" className="w-44 h-28 animate-pulse" />
+              <p className="text-sm text-gray-500">Memuat data...</p>
+            </div>
+          ) : adminList.length === 0 ? (
+            <div className="py-12 text-center text-gray-500">
+              Tidak ada data admin saat ini
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full border border-gray-300 border-collapse">
 
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 sm:px-6 border-r border-b border-gray-300">
-              Nama
-            </th>
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 sm:px-6 border-r border-b border-gray-300">
+                      Nama
+                    </th>
 
-            <th className="hidden md:table-cell px-3 py-3 text-left text-sm font-semibold text-gray-700 border-r border-b border-gray-300">
-              Email
-            </th>
+                    <th className="hidden md:table-cell px-3 py-3 text-left text-sm font-semibold text-gray-700 border-r border-b border-gray-300">
+                      Email
+                    </th>
 
-            <th className="px-3 py-3 text-left text-sm font-semibold text-gray-700 border-r border-b border-gray-300">
-              Role
-            </th>
+                    <th className="px-3 py-3 text-left text-sm font-semibold text-gray-700 border-r border-b border-gray-300">
+                      Role
+                    </th>
 
-            <th className="hidden sm:table-cell px-3 py-3 text-left text-sm font-semibold text-gray-700 border-r border-b border-gray-300">
+                    {/* <th className="hidden sm:table-cell px-3 py-3 text-left text-sm font-semibold text-gray-700 border-r border-b border-gray-300">
               No HP
-            </th>
+            </th> */}
 
-            <th className="hidden lg:table-cell px-3 py-3 text-left text-sm font-semibold text-gray-700 border-r border-b border-gray-300">
-              Alamat
-            </th>
+                    <th className="hidden lg:table-cell px-3 py-3 text-left text-sm font-semibold text-gray-700 border-r border-b border-gray-300">
+                      Alamat
+                    </th>
 
-            <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 sm:px-6 border-b border-gray-300">
-              Aksi
-            </th>
-          </tr>
-        </thead>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 sm:px-6 border-b border-gray-300">
+                      Aksi
+                    </th>
+                  </tr>
+                </thead>
 
-        <tbody className="bg-white">
-          {paginatedAdmins.map((user) => (
-            <tr
-              key={user.id_user}
-              className="hover:bg-gray-50 transition-colors"
-            >
-              <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6 border-r border-b border-gray-300">
-                {user.nama}
-              </td>
+                <tbody className="bg-white">
+                  {paginatedAdmins.map((user) => (
+                    <tr
+                      key={user.id_user}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6 border-r border-b border-gray-300">
+                        {user.nama}
+                      </td>
 
-              <td className="hidden md:table-cell whitespace-nowrap px-3 py-4 text-sm text-gray-500 border-r border-b border-gray-300">
-                {user.email}
-              </td>
+                      <td className="hidden md:table-cell whitespace-nowrap px-3 py-4 text-sm text-gray-500 border-r border-b border-gray-300">
+                        {user.email}
+                      </td>
 
-              <td className="whitespace-nowrap px-3 py-4 text-sm border-r border-b border-gray-300">
-                {roleBadge(user.role)}
-              </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm border-r border-b border-gray-300">
+                        {roleBadge(user.role)}
+                      </td>
 
-              <td className="hidden sm:table-cell whitespace-nowrap px-3 py-4 text-sm text-gray-500 border-r border-b border-gray-300">
+                      {/* <td className="hidden sm:table-cell whitespace-nowrap px-3 py-4 text-sm text-gray-500 border-r border-b border-gray-300">
                 {user.no_hp || '—'}
-              </td>
+              </td> */}
 
-              <td className="hidden lg:table-cell whitespace-nowrap px-3 py-4 text-sm text-gray-500 border-r border-b border-gray-300">
-                {user.alamat || '—'}
-              </td>
+                      <td className="hidden lg:table-cell whitespace-nowrap px-3 py-4 text-sm text-gray-500 border-r border-b border-gray-300">
+                        {user.alamat || '—'}
+                      </td>
 
-              <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6 border-b border-gray-300">
-                <div className="flex items-center justify-end gap-3">
+                      <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-left text-sm font-medium sm:pr-6 border-b border-gray-300">
+                        <div className="flex items-center justify-start gap-3">
 
-                  <button
-                    className="text-blue-600 hover:text-blue-800"
-                    title="Edit"
-                  >
-                    <Pencil size={18} />
-                  </button>
+                          <button
+                            onClick={() => handleEdit(user)}
+                            className="text-blue-600 hover:text-blue-800"
+                            title="Edit"
+                          >
+                            <Pencil size={18} />
+                          </button>
 
-                  <button
-                    onClick={() => handleDelete(Number(user.id_user), user.nama)}
-                    className="text-red-600 hover:text-red-800"
-                    title="Hapus"
-                  >
-                    <Trash2 size={18} />
-                  </button>
 
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )}
-</div>
-</div>
+                          <button
+                            onClick={() => handleDelete(Number(user.id_user), user.nama)}
+                            className="text-red-600 hover:text-red-800"
+                            title="Hapus"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Modal Tambah / Edit Admin */}
       {showModal && (
@@ -369,13 +381,13 @@ export default function AdminPage() {
           <div className="bg-white rounded-lg p-8 max-w-md w-full max-h-screen overflow-y-auto">
 
             <h3 className="text-xl font-bold mb-4">
-              Tambah Admin
+              {editMode ? 'Edit Admin' : 'Tambah Admin'}
             </h3>
 
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                handleAddAdmin();
+                editMode ? handleEditAdmin() : handleAddAdmin();
               }}
               className="space-y-4"
             >
@@ -394,8 +406,8 @@ export default function AdminPage() {
                     setFormErrors((prev) => ({ ...prev, nama: undefined }));
                   }}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${formErrors.nama
-                      ? 'border-red-500 bg-red-50'
-                      : 'border-gray-300'
+                    ? 'border-red-500 bg-red-50'
+                    : 'border-gray-300'
                     }`}
                   placeholder="Masukkan nama admin"
                 />
@@ -421,8 +433,8 @@ export default function AdminPage() {
                     setFormErrors((prev) => ({ ...prev, email: undefined }));
                   }}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${formErrors.email
-                      ? 'border-red-500 bg-red-50'
-                      : 'border-gray-300'
+                    ? 'border-red-500 bg-red-50'
+                    : 'border-gray-300'
                     }`}
                   placeholder="Masukkan email admin"
                 />
@@ -448,8 +460,8 @@ export default function AdminPage() {
                     setFormErrors((prev) => ({ ...prev, password: undefined }));
                   }}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${formErrors.password
-                      ? 'border-red-500 bg-red-50'
-                      : 'border-gray-300'
+                    ? 'border-red-500 bg-red-50'
+                    : 'border-gray-300'
                     }`}
                   placeholder="Masukkan password"
                 />
@@ -474,8 +486,8 @@ export default function AdminPage() {
                     setFormErrors((prev) => ({ ...prev, alamat: undefined }));
                   }}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${formErrors.alamat
-                      ? 'border-red-500 bg-red-50'
-                      : 'border-gray-300'
+                    ? 'border-red-500 bg-red-50'
+                    : 'border-gray-300'
                     }`}
                   placeholder="Masukkan alamat admin"
                   rows={3}
@@ -493,12 +505,17 @@ export default function AdminPage() {
 
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    setShowModal(false);
+                    setEditMode(false);
+                    setEditingUser(null);
+                    setFormData({ nama: '', email: '', password: '', alamat: '' });
+                    setFormErrors({});
+                  }}
                   className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
                 >
                   Batal
                 </button>
-
                 <button
                   type="submit"
                   className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
@@ -514,7 +531,7 @@ export default function AdminPage() {
         </div>
       )}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 animate-in fade-in zoom-in duration-200">
             <div className="flex flex-col items-center text-center">
 

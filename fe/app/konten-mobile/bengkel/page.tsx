@@ -7,7 +7,7 @@ import BengkelService from '@/services/bengkel-service';
 import toast from 'react-hot-toast';
 
 const STATUS_OPTIONS = ['draft', 'published'];
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 5;
 
 function validateForm(formData: any): Record<string, string> {
   const errors: Record<string, string> = {};
@@ -61,9 +61,9 @@ function validateForm(formData: any): Record<string, string> {
     }
   }
 
-  if (formData.urutan !== '' && formData.urutan < 0) {
-    errors.urutan = 'Urutan tidak boleh kurang dari 0.';
-  }
+  // if (formData.urutan !== '' && formData.urutan < 0) {
+  //   errors.urutan = 'Urutan tidak boleh kurang dari 0.';
+  // }
 
   if (!formData.status) {
     errors.status = 'Status wajib dipilih.';
@@ -97,13 +97,13 @@ export default function BengkelPage() {
     jam_operasional: '',
     maps_link: '',
     deskripsi: '',
-    urutan: 0,
+    // urutan: 0,
     status: 'published',
-    gambar: null as File | null,
+    gambar: [] as File[],
   });
 
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-  const [currentImage, setCurrentImage] = useState<string | null>(null);
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const [currentImages, setCurrentImages] = useState<string[]>([]);
 
   useEffect(() => {
     fetchData();
@@ -141,15 +141,25 @@ export default function BengkelPage() {
 
   const handleOpenModal = (item?: any) => {
     setFormErrors({});
+
     if (item) {
       setEditMode(true);
       setSelectedId(item.id);
-      setCurrentImage(item.gambar_url ?? null);
-      setFormData({ ...item, gambar: null });
+
+      setCurrentImages(item.gambar_url || []);
+
+      setFormData({
+        ...item,
+        gambar: [],
+      });
+
     } else {
+
       setEditMode(false);
       setSelectedId(0);
-      setCurrentImage(null);
+
+      setCurrentImages([]);
+
       setFormData({
         nama: '',
         alamat: '',
@@ -159,52 +169,104 @@ export default function BengkelPage() {
         jam_operasional: '',
         maps_link: '',
         deskripsi: '',
-        urutan: 0,
+        // urutan: 0,
         status: 'published',
-        gambar: null,
+        gambar: [],
       });
     }
-    setPreviewImage(null);
+
+    setPreviewImages([]);
     setShowModal(true);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedId(0);
-    setPreviewImage(null);
-    setCurrentImage(null);
+
+    setPreviewImages([]);
+    setCurrentImages([]);
+
     setFormErrors({});
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
+  const handleImageChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
 
+    if (!e.target.files) return;
+
+    const files = Array.from(e.target.files);
+
+    const validFiles: File[] = [];
+    const previewUrls: string[] = [];
+
+    files.forEach((file) => {
+
+      // Validasi ukuran
       if (file.size > 2 * 1024 * 1024) {
-        toast.error('Ukuran gambar maksimal 2MB.');
+        toast.error(`${file.name} melebihi 2MB`);
         return;
       }
 
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      // Validasi format
+      const allowedTypes = [
+        'image/jpeg',
+        'image/png',
+        'image/webp'
+      ];
+
       if (!allowedTypes.includes(file.type)) {
-        toast.error('Format gambar tidak didukung. Gunakan PNG, JPG, atau WEBP.');
+        toast.error(`${file.name} format tidak didukung`);
         return;
       }
 
+      // Rename file
       const newFileName = file.name
         .replace(/\s+/g, '_')
         .replace(/[^\w\s.-]/gi, '_')
         .toLowerCase();
-      const renamedFile = new File([file], newFileName, { type: file.type });
-      setFormData((prev) => ({ ...prev, gambar: renamedFile }));
-      setPreviewImage(URL.createObjectURL(file));
-    }
+
+      const renamedFile = new File(
+        [file],
+        newFileName,
+        { type: file.type }
+      );
+
+      validFiles.push(renamedFile);
+
+      // Preview image
+      previewUrls.push(
+        URL.createObjectURL(renamedFile)
+      );
+    });
+
+    // TAMBAHKAN gambar baru TANPA menghapus gambar sebelumnya
+    setFormData((prev) => ({
+      ...prev,
+      gambar: [...prev.gambar, ...validFiles],
+    }));
+
+    // TAMBAHKAN preview baru TANPA menghapus preview sebelumnya
+    setPreviewImages((prev) => [
+      ...prev,
+      ...previewUrls
+    ]);
   };
 
-  const handleRemoveImage = () => {
-    setFormData((prev) => ({ ...prev, gambar: null }));
-    setPreviewImage(null);
-    setCurrentImage(null);
+  const handleRemoveImage = (index: number) => {
+
+    const updatedFiles = [...formData.gambar];
+    updatedFiles.splice(index, 1);
+
+    const updatedPreviews = [...previewImages];
+    updatedPreviews.splice(index, 1);
+
+    setFormData((prev) => ({
+      ...prev,
+      gambar: updatedFiles,
+    }));
+
+    setPreviewImages(updatedPreviews);
   };
 
   const handleFieldChange = (field: string, value: any) => {
@@ -218,35 +280,69 @@ export default function BengkelPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (
+    e: React.FormEvent
+  ) => {
+
     e.preventDefault();
 
     const errors = validateForm(formData);
+
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       toast.error('Mohon periksa kembali isian form.');
       return;
     }
 
-    const loadingToast = toast.loading(editMode ? 'Mengupdate...' : 'Menambahkan...');
+    const loadingToast = toast.loading(
+      editMode ? 'Mengupdate...' : 'Menambahkan...'
+    );
 
     const data = new FormData();
+
     Object.entries(formData).forEach(([key, val]: any) => {
-      if (val !== null) data.append(key, val);
+
+      if (key === 'gambar') {
+
+        val.forEach((file: File) => {
+          data.append('gambar[]', file);
+        });
+
+      } else {
+
+        data.append(key, val);
+      }
     });
-    if (editMode) data.append('_method', 'PUT');
+
+    if (editMode) {
+      data.append('_method', 'PUT');
+    }
 
     try {
+
       if (editMode) {
         await BengkelService.update(selectedId, data);
       } else {
         await BengkelService.create(data);
       }
-      toast.success(editMode ? 'Bengkel berhasil diperbarui' : 'Bengkel berhasil ditambahkan', { id: loadingToast });
+
+      toast.success(
+        editMode
+          ? 'Bengkel berhasil diperbarui'
+          : 'Bengkel berhasil ditambahkan',
+        { id: loadingToast }
+      );
+
       handleCloseModal();
+
       fetchData();
+
     } catch (error: any) {
-      toast.error(error.message || 'Terjadi kesalahan', { id: loadingToast });
+
+      toast.error(
+        error.message || 'Terjadi kesalahan',
+        { id: loadingToast }
+      );
     }
   };
 
@@ -286,8 +382,8 @@ export default function BengkelPage() {
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Kelola Vespa Pedia</h2>
-          <p className="text-gray-600 mt-1">Konten edukasi untuk mobile app pengguna</p>
+          <h2 className="text-2xl font-bold text-gray-800">Informasi Bengkel</h2>
+          <p className="text-gray-600 mt-1">Kelola informasi bengkel</p>
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -345,13 +441,13 @@ export default function BengkelPage() {
                     Gambar
                   </th>
 
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">
+                  {/* <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">
                     Status
                   </th>
 
                   <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-b border-gray-300">
                     Urutan
-                  </th>
+                  </th> */}
 
                   <th className="px-4 sm:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
                     Aksi
@@ -386,15 +482,23 @@ export default function BengkelPage() {
 
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap border-r border-b border-gray-300">
                         {b.gambar_url ? (
-                          <img
-                            src={b.gambar_url}
-                            alt={b.nama}
-                            className="h-32 w-48 object-cover border-4 border-white"
-                            onError={(e) => {
-                              e.currentTarget.src =
-                                'https://via.placeholder.com/480x320?text=Gambar+Gagal+Dimuat';
-                            }}
-                          />
+                          <div className="flex gap-2 flex-wrap">
+                            {(Array.isArray(b.gambar_url)
+                              ? b.gambar_url
+                              : [b.gambar_url]
+                            ).map((url: string, i: number) => (
+                              <img
+                                key={i}
+                                src={url}
+                                alt={`${b.nama} ${i + 1}`}
+                                className="h-32 w-48 object-cover border-4 border-white rounded-lg"
+                                onError={(e) => {
+                                  e.currentTarget.src =
+                                    'https://via.placeholder.com/480x320?text=Gambar+Gagal+Dimuat';
+                                }}
+                              />
+                            ))}
+                          </div>
                         ) : (
                           <div className="h-32 w-48 bg-gray-300 rounded-xl flex items-center justify-center text-gray-600 font-medium text-sm">
                             Tidak ada gambar
@@ -402,7 +506,7 @@ export default function BengkelPage() {
                         )}
                       </td>
 
-                      <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm border-r border-b border-gray-300">
+                      {/* <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm border-r border-b border-gray-300">
                         <span
                           className={`px-3 py-1 text-xs font-semibold rounded-full ${b.status === 'published'
                             ? 'bg-green-100 text-green-800'
@@ -415,7 +519,7 @@ export default function BengkelPage() {
 
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center border-r border-b border-gray-300">
                         {b.urutan}
-                      </td>
+                      </td> */}
 
                       <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium border-b border-gray-300">
                         <div className="flex items-center justify-center gap-2">
@@ -468,7 +572,11 @@ export default function BengkelPage() {
                   </div>
                   {b.gambar_url && (
                     <img
-                      src={b.gambar_url}
+                      src={
+                        Array.isArray(b.gambar_url)
+                          ? b.gambar_url[0]
+                          : b.gambar_url
+                      }
                       alt={b.nama}
                       className="w-full h-48 object-cover rounded-lg mt-2"
                       onError={(e) => {
@@ -477,10 +585,10 @@ export default function BengkelPage() {
                     />
                   )}
                   <div className="flex justify-between items-center text-sm mt-3">
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${b.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                    {/* <span className={`px-2 py-1 text-xs font-semibold rounded-full ${b.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
                       {b.status}
-                    </span>
-                    <span className="text-gray-500">Urutan: {b.urutan}</span>
+                    </span> */}
+                    {/* <span className="text-gray-500">Urutan: {b.urutan}</span> */}
                   </div>
                 </div>
               ))
@@ -626,38 +734,102 @@ export default function BengkelPage() {
 
               {/* Upload Gambar */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Gambar</label>
-                {!(previewImage || currentImage) && (
-                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                    <div className="space-y-1 text-center">
-                      <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                      <div className="flex text-sm text-gray-600 justify-center">
-                        <label htmlFor="file-upload" className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500">
-                          <span>Upload file</span>
-                          <input id="file-upload" type="file" className="sr-only" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} />
-                        </label>
-                        <p className="pl-1">atau drag and drop</p>
-                      </div>
-                      <p className="text-xs text-gray-500">PNG, JPG, WEBP hingga 2MB</p>
+
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Gambar
+                </label>
+
+                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+
+                  <div className="space-y-1 text-center">
+
+                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
+
+                    <div className="flex text-sm text-gray-600 justify-center">
+
+                      <label
+                        htmlFor="file-upload"
+                        className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500"
+                      >
+
+                        <span>Unggah file</span>
+
+                        <input
+                          id="file-upload"
+                          type="file"
+                          className="sr-only"
+                          multiple
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={handleImageChange}
+                        />
+
+                      </label>
+
+                      <p className="pl-1">atau sentuh atau tarik</p>
+
                     </div>
+
+                    <p className="text-xs text-gray-500">
+                      PNG, JPG, WEBP hingga 2MB
+                    </p>
+
+                  </div>
+                </div>
+
+                {/* Preview gambar baru */}
+                {previewImages.length > 0 && (
+
+                  <div className="grid grid-cols-2 gap-3 mt-4">
+
+                    {previewImages.map((img, index) => (
+
+                      <div
+                        key={index}
+                        className="relative"
+                      >
+
+                        <img
+                          src={img}
+                          alt={`Preview ${index}`}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(index)}
+                          className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full hover:bg-red-700"
+                        >
+                          <X size={14} />
+                        </button>
+
+                      </div>
+                    ))}
+
                   </div>
                 )}
-                {(previewImage || currentImage) && (
-                  <div className="mt-2 relative">
-                    <img src={previewImage || currentImage || ''} alt="Preview" className="w-full h-48 object-cover rounded-lg" />
-                    <button type="button" onClick={handleRemoveImage} className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full hover:bg-red-700 transition-colors">
-                      <X size={16} />
-                    </button>
-                    <label htmlFor="file-upload-replace" className="absolute bottom-2 right-2 bg-white text-gray-700 text-xs px-2 py-1 rounded shadow cursor-pointer hover:bg-gray-100 transition-colors">
-                      Ganti
-                      <input id="file-upload-replace" type="file" className="sr-only" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} />
-                    </label>
+
+                {/* Gambar lama */}
+                {currentImages.length > 0 && (
+
+                  <div className="grid grid-cols-2 gap-3 mt-4">
+
+                    {currentImages.map((img: string, index: number) => (
+
+                      <img
+                        key={index}
+                        src={img}
+                        alt={`Current ${index}`}
+                        className="w-full h-32 object-cover rounded-lg"
+                      />
+                    ))}
+
                   </div>
                 )}
+
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Urutan</label>
                   <input
                     type="number"
@@ -667,8 +839,8 @@ export default function BengkelPage() {
                     min="0"
                   />
                   <FieldError field="urutan" />
-                </div>
-                <div>
+                </div> */}
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Status <span className="text-red-500">*</span>
                   </label>
@@ -682,7 +854,7 @@ export default function BengkelPage() {
                     ))}
                   </select>
                   <FieldError field="status" />
-                </div>
+                </div> */}
               </div>
 
               <div className="flex gap-3 pt-2">

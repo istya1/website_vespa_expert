@@ -1,15 +1,13 @@
 'use client';
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import AuthService from '@/services/auth-service';
 import toast from 'react-hot-toast';
-import Cookies from 'js-cookie';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,7 +33,7 @@ export default function LoginPage() {
       valid = false;
     }
 
-    if (!password.trim()) {                    // ← Hanya cek kosong
+    if (!password.trim()) {
       setPasswordError('Password tidak boleh kosong');
       valid = false;
     }
@@ -67,11 +65,9 @@ export default function LoginPage() {
     }
   };
 
-  useEffect(() => {
-    Cookies.remove('token');
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-  }, []);
+  // ⚠️ DIHAPUS: useEffect yang hapus token saat buka halaman login
+  // Kalau token dihapus di sini, middleware tidak bisa cek apakah user sudah login
+  // Penghapusan token hanya boleh terjadi saat LOGOUT (di AuthService.logout())
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-600 to-primary-800 flex items-center justify-center p-4">
@@ -160,13 +156,6 @@ export default function LoginPage() {
             )}
           </button>
         </form>
-
-        {/* <p className="text-center text-sm text-gray-600 mt-6">
-          Belum punya akun?{' '}
-          <Link href="/register" className="text-primary-600 hover:text-primary-700 font-semibold">
-            Daftar di sini
-          </Link>
-        </p> */}
 
         <p className="text-center text-sm text-gray-500 mt-8">
           © 2026 Vespa Matic Expert.

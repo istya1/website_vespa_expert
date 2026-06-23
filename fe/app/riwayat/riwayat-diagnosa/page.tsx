@@ -342,9 +342,9 @@ export default function DiagnosaPage() {
       <div className="mb-8">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Evaluasi Bengkel</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Riwayat Diagnosa</h2>
             <p className="text-sm text-gray-500 mt-1">
-              Analisis pola kerusakan, tren diagnosa per bulan, dan distribusi per jenis motor
+              Melihat riwayat diagnosa, tren diagnosa per bulan, dan kerusakan tiap jenis motor
             </p>
           </div>
 
@@ -578,7 +578,7 @@ export default function DiagnosaPage() {
                     <th className="px-4 py-3 text-left">Tanggal</th>
                     <th className="px-4 py-3 text-left">Gejala</th>
                     <th className="px-4 py-3 text-left">Hasil Kerusakan</th>
-                    <th className="px-4 py-3 text-center">Aksi</th>
+                    {/* <th className="px-4 py-3 text-center">Aksi</th> */}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -631,14 +631,7 @@ export default function DiagnosaPage() {
                             </div>
                           ) : <span className="text-gray-400">-</span>}
                         </td>
-                        <td className="px-4 py-3 text-center">
-                          <button
-                            onClick={() => { setDeleteId(d.id_diagnosa); setShowDeleteModal(true); }}
-                            className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </td>
+                      
                       </tr>
                     ))
                   )}

@@ -1,6 +1,7 @@
 // src/services/auth-service.ts
 import ApiService from './api-service';      // Import service HTTP yang sudah terkonfigurasi
 import { User } from '@/types';              // Import tipe data User dari folder types
+import Cookies from 'js-cookie';
 
 // Interface untuk response dari endpoint login
 interface LoginResponse {
@@ -43,6 +44,7 @@ const AuthService = {
     // Simpan token dan data user ke localStorage
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(user));
+    Cookies.set('token', token, { expires: 7 });
 
     return user;   // Kembalikan data user
   },
@@ -64,6 +66,7 @@ const AuthService = {
       // Selalu hapus data autentikasi dari localStorage
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      Cookies.remove('token');
     }
   },
 

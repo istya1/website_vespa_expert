@@ -16,8 +16,18 @@ export default function Header({ title, onMenuToggle }: HeaderProps) {
   const [user, setUser] = useState<UserType | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const showTitle =
+    title === 'Dashboard Admin' ||
+    title === 'Dashboard Super Admin';
 
-  const refreshUser = () => {
+  const refreshUser = (event?: any) => {
+    // kalau ada data dari event langsung pakai
+    if (event?.detail) {
+      setUser(event.detail);
+      return;
+    }
+
+    // fallback dari localStorage
     const currentUser = AuthService.getUser();
     setUser(currentUser);
   };
@@ -25,7 +35,7 @@ export default function Header({ title, onMenuToggle }: HeaderProps) {
   useEffect(() => {
     refreshUser();
     window.addEventListener('storage', refreshUser);
-    window.addEventListener('userUpdated', refreshUser);
+    window.addEventListener('userUpdated', refreshUser as EventListener);
     return () => {
       window.removeEventListener('storage', refreshUser);
       window.removeEventListener('userUpdated', refreshUser);
@@ -52,8 +62,11 @@ export default function Header({ title, onMenuToggle }: HeaderProps) {
             >
               <Menu size={22} />
             </button>
-            <h1 className="text-lg md:text-2xl font-bold text-primary-600 truncate">{title}</h1>
-          </div>
+            {showTitle && (
+              <h1 className="text-lg md:text-2xl font-bold text-primary-600 truncate">
+                {title}
+              </h1>
+            )}          </div>
 
           {/* Kanan: profile dropdown */}
           <div className="relative flex-shrink-0">
@@ -63,7 +76,7 @@ export default function Header({ title, onMenuToggle }: HeaderProps) {
             >
               {user?.foto ? (
                 <img
-                  src={user.foto.startsWith('http') ? user.foto : `${process.env.NEXT_PUBLIC_API_URL}/storage/${user.foto}`}
+                  src={user.foto.startsWith('http') ? user.foto : `${process.env.NEXT_PUBLIC_IMAGE_URL}/storage/${user.foto}`}
                   alt={user.nama}
                   className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover"
                 />

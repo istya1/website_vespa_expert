@@ -58,8 +58,12 @@ export default function ProfilePage() {
 
   const getPhotoUrl = (foto?: string) => {
     if (!foto) return '';
-    if (foto.startsWith('http')) return foto;
-    return `${baseUrl}/storage/${foto}`;
+
+    if (foto.startsWith('http')) {
+      return foto;
+    }
+
+    return `${process.env.NEXT_PUBLIC_IMAGE_URL}/storage/${foto}`;
   };
 
   const fetchProfile = async () => {
@@ -125,44 +129,86 @@ export default function ProfilePage() {
   // ── Update profil ─────────────────────────────────────────────
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!user) return;
 
     const error = validateProfile(formData);
+
     if (error) {
       toast.error(error);
       return;
     }
 
     setIsUpdating(true);
+
     const loadingToast = toast.loading('Menyimpan perubahan...');
 
     try {
-      const updatedUser = await UserService.update(Number(user.id_user), {
+      // update data profil
+      await UserService.update(Number(user.id_user), {
         nama: formData.nama.trim(),
         alamat: formData.alamat.trim(),
+        no_hp: formData.no_hp.trim(),
       });
 
-      let finalUser = { ...user, ...updatedUser };
-
+      // upload foto jika ada
       if (selectedFile) {
-        const photoRes = await UserService.uploadPhoto(Number(user.id_user), selectedFile);
-        finalUser = { ...finalUser, foto: photoRes.foto };
-        setPreviewImage(getPhotoUrl(photoRes.foto));
+        await UserService.uploadPhoto(
+          Number(user.id_user),
+          selectedFile
+        );
       }
 
-      setUser(finalUser);
-      localStorage.setItem('user', JSON.stringify(finalUser));
+      // 🔥 ambil ulang data terbaru dari database
+      const freshUser = await UserService.getById(
+        Number(user.id_user)
+      );
 
-      // 🔥 Penting: Update Header
-      window.dispatchEvent(new Event('userUpdated'));
+      // validasi agar tidak null
+      if (!freshUser) {
+        throw new Error('Gagal memuat data user terbaru');
+      }
 
+      // update state halaman profil
+      setUser(freshUser);
+
+      // update localStorage untuk header
+      localStorage.setItem(
+        'user',
+        JSON.stringify(freshUser)
+      );
+
+      // refresh header realtime
+      window.dispatchEvent(
+        new Event('userUpdated')
+      );
+
+      // update foto preview
+      if (freshUser.foto) {
+        setPreviewImage(
+          getPhotoUrl(freshUser.foto)
+        );
+      }
+
+      // reset state
       setEditMode(false);
       setSelectedFile(null);
       setFormErrors({});
 
-      toast.success('Profil berhasil diperbarui', { id: loadingToast });
+      toast.success(
+        'Profil berhasil diperbarui',
+        { id: loadingToast }
+      );
+
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Gagal memperbarui profil', { id: loadingToast });
+
+      toast.error(
+        error.response?.data?.message ||
+        error.message ||
+        'Gagal memperbarui profil',
+        { id: loadingToast }
+      );
+
     } finally {
       setIsUpdating(false);
     }
@@ -410,12 +456,12 @@ export default function ProfilePage() {
               >
                 <User size={16} /> Edit Profil
               </button>
-              <button
+              {/* <button
                 onClick={() => setChangePasswordMode(prev => !prev)}
                 className="bg-gray-600 text-white px-5 py-2.5 rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium flex items-center gap-2"
               >
                 <Key size={16} /> Ubah Password
-              </button>
+              </button> */}
 
             </div>
           )}

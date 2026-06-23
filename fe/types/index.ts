@@ -25,7 +25,6 @@ export interface Gejala {
   nama_gejala: string;
   jenis_motor_id: number;
   jenis_motor?: JenisMotor;
-  bobot: number;
   kategori_id: number;
   kategori?: {
     id?: number;
@@ -44,10 +43,10 @@ export interface GejalaFormData {
 export interface Kerusakan {
   kode_kerusakan: string;
   nama_kerusakan: string;
-  kategori: string;
+  // kategori: string;
   keterangan: string;
   solusi: string;
-  jenis_motor_id: number;      
+  jenis_motor_id: number;
   jenis_motor?: JenisMotor;
   gejala?: Gejala[];
 }
@@ -79,20 +78,13 @@ export interface GejalaDiagnosa {
 }
 
 export interface Diagnosa {
-  // id_diagnosa: number;
-  // tanggal: string;
-  // persentase: number;
-  // kode_kerusakan: string;
-  // gejala?: Gejala[];
-  // hasilDiagnosis?: HasilDiagnosis[];
-
   id_diagnosa: number;
   user_id: number;
   jenis_motor: string;
   gejala_terpilih: string | string[]; // bisa string JSON atau array setelah decode
   kode_kerusakan: string | null;
   persentase: number;
-  tingkat_kepastian: string;
+  status_kecocokan: string; // 'final' atau 'kemungkinan'
   tanggal: string;
   created_at: string;
   updated_at: string;
@@ -112,14 +104,12 @@ export interface HasilDiagnosis {
   };
 }
 
-
 export interface DiagnosaHasil {
   id_diagnosa_hasil: number;
   id_diagnosa: number;
   kode_kerusakan: string;
-  prioritas: number; // 1 = utama, 2 = alternatif 1, dst
   persentase_kecocokan: number;
-  tingkat_kepastian: string;
+  status_kecocokan: string; // 'final' atau 'kemungkinan'
   gejala_cocok: number;
   total_gejala_aturan: number;
 
@@ -167,8 +157,7 @@ export interface DiagnosisResult {
   total_gejala_aturan: number;
   gejala_yang_cocok: string[];
   semua_gejala_aturan: string[];
-  prioritas: number;
-  tingkat_kepastian: string;
+  status: 'final' | 'kemungkinan';
 }
 
 export interface AturanKandidat {
@@ -222,11 +211,12 @@ export type StatusPedia = 'draft' | 'published';
 export interface VespaPedia {
   id: number;
   judul: string;
+  deskripsi: string;
   jenis_motor_id: number;
   jenis_motor?: JenisMotor;
   kategori?: KategoriPedia;
   gambar: string | null;
-  gambar_url?: string;
+  gambar_url?: string[];
   spesifikasi: string;
   keunggulan: string;
   tips: string;
