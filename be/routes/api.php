@@ -20,6 +20,7 @@ use App\Http\Controllers\KendaraanController;
 use App\Http\Controllers\ServisController;
 use Illuminate\Http\Request;
 use App\Http\Controllers\JenisMotorController;
+use App\Http\Controllers\TestNotifikasiController;
 
 Route::get('/login', function () {
     return response()->json([
