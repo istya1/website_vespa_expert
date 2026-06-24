@@ -106,7 +106,7 @@ export default function VespaPediaPage() {
     }
   };
 
- const getImageUrl = (url?: string | string[] | null): string[] => {
+const getImageUrl = (url?: string | string[] | null): string[] => {
   if (!url) return [];
 
   const processSingle = (singleUrl: string): string => {
@@ -114,29 +114,24 @@ export default function VespaPediaPage() {
 
     console.log('Original gambar_url:', singleUrl);
 
-    // Jika sudah full URL → konversi ke proxy
+    // Jika sudah URL lengkap dari API, langsung gunakan
     if (singleUrl.startsWith('http')) {
-      // Ambil bagian setelah domain
-      const path = singleUrl.split('.ngrok-free.dev/')[1] || singleUrl;
-      const finalUrl = `/uploads/${path.replace('uploads/', '')}`;
-      console.log('Final Proxy URL:', finalUrl);
-      return finalUrl;
+      return singleUrl;
     }
 
-    // Jika hanya path
-    let path = singleUrl.startsWith('/') ? singleUrl.substring(1) : singleUrl;
-    if (!path.startsWith('uploads/')) {
-      path = `uploads/${path}`;
-    }
+    // Jika hanya path dari database
+    const path = singleUrl.startsWith('/')
+      ? singleUrl.substring(1)
+      : singleUrl;
 
-    return `/uploads/${path.replace('uploads/', '')}`;
+    return `https://api.expertvespa.cloud/${path}`;
   };
 
-  const result = Array.isArray(url) 
+  const result = Array.isArray(url)
     ? url.map(processSingle).filter(Boolean)
     : [processSingle(url)].filter(Boolean);
 
-  console.log('Hasil akhir getImageUrl:', result);
+  console.log('gambar_url setelah fix:', result);
   return result;
 };
 
