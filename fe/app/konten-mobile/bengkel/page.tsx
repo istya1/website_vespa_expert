@@ -109,30 +109,34 @@ export default function BengkelPage() {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const data = await BengkelService.getAll();
+ const fetchData = async () => {
+  try {
+    setLoading(true);
 
-      const fixed = data.map((item: any) => ({
-        ...item,
-        gambar_url: (item.gambar_url || []).map((url: string) =>
-          url.replace(
-            'https://appraiser-pasty-helpline.ngrok-free.dev/storage/',
-            '/api-storage/'
-          )
-        ),
-      }));
+    const data = await BengkelService.getAll();
 
-      console.log('gambar_url setelah fix:', fixed[0]?.gambar_url);
+    const fixed = data.map((item: any) => ({
+      ...item,
+      gambar_url: (item.gambar_url || []).map((url: string) => {
+        if (url.startsWith("http")) {
+          return url;
+        }
 
-      setBengkelList(fixed);
-    } catch {
-      toast.error('Gagal memuat data bengkel');
-    } finally {
-      setLoading(false);
-    }
-  };
+        return /storage/${url};
+      }),
+    }));
+
+    console.log("gambar_url setelah fix:", fixed[0]?.gambar_url);
+
+    setBengkelList(fixed);
+
+  } catch (error) {
+    console.error(error);
+    toast.error("Gagal memuat data bengkel");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const filteredList = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
