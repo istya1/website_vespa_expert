@@ -4,20 +4,20 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL}/:path*`,
+        destination: 'https://api.expertvespa.cloud/api/:path*',
       },
       {
         source: '/storage/:path*',
-        destination: 'https://appraiser-pasty-helpline.ngrok-free.dev/storage/:path*',
+        destination: 'https://api.expertvespa.cloud/storage/:path*',
       },
       {
-        source: '/api-storage/:path*',   // ← tambahkan ini juga
-        destination: 'https://appraiser-pasty-helpline.ngrok-free.dev/storage/:path*',
+        source: '/api-storage/:path*',
+        destination: 'https://api.expertvespa.cloud/storage/:path*',
       },
       {
-      source: '/uploads/:path*',        // ← Tambahkan ini
-      destination: 'https://appraiser-pasty-helpline.ngrok-free.dev/uploads/:path*',
-    },
+        source: '/uploads/:path*',
+        destination: 'https://api.expertvespa.cloud/uploads/:path*',
+      },
     ];
   },
 
@@ -25,7 +25,7 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'appraiser-pasty-helpline.ngrok-free.dev',
+        hostname: 'api.expertvespa.cloud',
       },
     ],
   },
