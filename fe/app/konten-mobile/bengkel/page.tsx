@@ -122,7 +122,7 @@ export default function BengkelPage() {
           return url;
         }
 
-        return /storage/${url};
+        return `/storage/${url}`;
       }),
     }));
 
