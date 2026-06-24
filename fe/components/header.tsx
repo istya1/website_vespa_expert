@@ -48,6 +48,23 @@ export default function Header({ title, onMenuToggle }: HeaderProps) {
     router.push('/login');
   };
 
+  const getPhotoUrl = (foto?: string) => {
+    if (!foto) return '';
+
+    if (foto.startsWith('http')) {
+      return foto;
+    }
+
+    let path = foto.startsWith('/') ? foto.substring(1) : foto;
+
+    if (!path.startsWith('storage/')) {
+      path = `storage/${path}`;
+    }
+
+    // Pakai Proxy Next.js (paling stabil)
+    return `/storage/${path.replace('storage/', '')}`;
+  };
+
   return (
     <>
       <header className="bg-white border-b border-gray-200 px-4 md:px-8 py-3 md:py-[#600px]">
@@ -74,11 +91,16 @@ export default function Header({ title, onMenuToggle }: HeaderProps) {
               onClick={() => setShowDropdown(!showDropdown)}
               className="flex items-center gap-2 md:gap-3 hover:bg-gray-100 px-2 md:px-3 py-2 rounded-lg transition-colors"
             >
+              {/* Foto di Header */}
               {user?.foto ? (
                 <img
-                  src={user.foto.startsWith('http') ? user.foto : `${process.env.NEXT_PUBLIC_IMAGE_URL}/storage/${user.foto}`}
+                  src={getPhotoUrl(user.foto)}   // ← pakai fungsi yang sama
                   alt={user.nama}
-                  className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover"
+                  className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover border border-white"
+                  onError={(e) => {
+                    console.error('Header image failed:', user.foto);
+                    e.currentTarget.style.display = 'none';
+                  }}
                 />
               ) : (
                 <div className="w-8 h-8 md:w-10 md:h-10 bg-primary-600 rounded-full flex items-center justify-center flex-shrink-0">

@@ -106,19 +106,53 @@ export default function VespaPediaPage() {
     }
   };
 
-  const getImageUrl = (url: string) => {
-    if (!url) return '';
-    if (url.startsWith('http')) return url; // sudah lengkap
-    return `${process.env.NEXT_PUBLIC_API_URL}/${url}`; // tambah base URL
+ const getImageUrl = (url?: string | string[] | null): string[] => {
+  if (!url) return [];
+
+  const processSingle = (singleUrl: string): string => {
+    if (!singleUrl) return '';
+
+    console.log('Original gambar_url:', singleUrl);
+
+    // Jika sudah full URL → konversi ke proxy
+    if (singleUrl.startsWith('http')) {
+      // Ambil bagian setelah domain
+      const path = singleUrl.split('.ngrok-free.dev/')[1] || singleUrl;
+      const finalUrl = `/uploads/${path.replace('uploads/', '')}`;
+      console.log('Final Proxy URL:', finalUrl);
+      return finalUrl;
+    }
+
+    // Jika hanya path
+    let path = singleUrl.startsWith('/') ? singleUrl.substring(1) : singleUrl;
+    if (!path.startsWith('uploads/')) {
+      path = `uploads/${path}`;
+    }
+
+    return `/uploads/${path.replace('uploads/', '')}`;
   };
+
+  const result = Array.isArray(url) 
+    ? url.map(processSingle).filter(Boolean)
+    : [processSingle(url)].filter(Boolean);
+
+  console.log('Hasil akhir getImageUrl:', result);
+  return result;
+};
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const data = await VespaPediaService.getAll();
-      console.log('gambar_url sample:', data[0]?.gambar_url);
-      setPediaList(data);
-    } catch {
+
+      const fixedData = data.map((item: any) => ({
+        ...item,
+        gambar_url: getImageUrl(item.gambar_url),
+      }));
+
+      setPediaList(fixedData);
+    } catch (err) {
+      console.error('Fetch error:', err);
       toast.error('Gagal memuat data Vespa Pedia');
     } finally {
       setLoading(false);
@@ -398,10 +432,11 @@ export default function VespaPediaPage() {
                       <td className="px-6 py-4 whitespace-nowrap border-r border-b border-gray-300">
                         {p.gambar_url ? (
                           <div className="flex gap-2 flex-wrap">
+                            {/* Di dalam tabel */}
                             {(Array.isArray(p.gambar_url) ? p.gambar_url : [p.gambar_url]).map((url, i) => (
                               <img
                                 key={i}
-                                src={url}
+                                src={url}                    // ← sudah di-fix dari fetchData
                                 alt={`${p.judul} ${i + 1}`}
                                 className="h-20 w-28 object-cover rounded-lg border border-gray-200"
                                 onError={(e) => {

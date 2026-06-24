@@ -113,7 +113,20 @@ export default function BengkelPage() {
     try {
       setLoading(true);
       const data = await BengkelService.getAll();
-      setBengkelList(data);
+
+      const fixed = data.map((item: any) => ({
+        ...item,
+        gambar_url: (item.gambar_url || []).map((url: string) =>
+          url.replace(
+            'https://appraiser-pasty-helpline.ngrok-free.dev/storage/',
+            '/api-storage/'
+          )
+        ),
+      }));
+
+      console.log('gambar_url setelah fix:', fixed[0]?.gambar_url);
+
+      setBengkelList(fixed);
     } catch {
       toast.error('Gagal memuat data bengkel');
     } finally {
@@ -493,8 +506,7 @@ export default function BengkelPage() {
                                 alt={`${b.nama} ${i + 1}`}
                                 className="h-32 w-48 object-cover border-4 border-white rounded-lg"
                                 onError={(e) => {
-                                  e.currentTarget.src =
-                                    'https://via.placeholder.com/480x320?text=Gambar+Gagal+Dimuat';
+                                  e.currentTarget.src = 'https://via.placeholder.com/480x320?text=Gambar+Gagal+Dimuat';
                                 }}
                               />
                             ))}
@@ -505,6 +517,7 @@ export default function BengkelPage() {
                           </div>
                         )}
                       </td>
+
 
                       {/* <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm border-r border-b border-gray-300">
                         <span

@@ -57,15 +57,15 @@ export default function DiagnosaPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  const fetchStatistik = async () => {
-    try {
-      const res = await fetch('http://localhost:8000/api/diagnosa/statistik');
-      const data = await res.json();
-      setStatistik(data);
-    } catch (error) {
-      console.error('Error fetch statistik:', error);
-    }
-  };
+const fetchStatistik = async () => {
+  try {
+    const res = await fetch('https://api.expertvespa.cloud/api/diagnosa/statistik');
+    const data = await res.json();
+    setStatistik(data);
+  } catch (error) {
+    console.error('Error fetch statistik:', error);
+  }
+};
 
   useEffect(() => { fetchData(); fetchStatistik(); }, []);
 

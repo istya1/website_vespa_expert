@@ -1,17 +1,34 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  images: {
-    domains: ['example.com'],
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${process.env.NEXT_PUBLIC_API_URL}/:path*`,
+      },
+      {
+        source: '/storage/:path*',
+        destination: 'https://appraiser-pasty-helpline.ngrok-free.dev/storage/:path*',
+      },
+      {
+        source: '/api-storage/:path*',   // ← tambahkan ini juga
+        destination: 'https://appraiser-pasty-helpline.ngrok-free.dev/storage/:path*',
+      },
+      {
+      source: '/uploads/:path*',        // ← Tambahkan ini
+      destination: 'https://appraiser-pasty-helpline.ngrok-free.dev/uploads/:path*',
+    },
+    ];
   },
-   webpack: (config) => {
-    config.watchOptions = {
-      poll: 1000,
-      aggregateTimeout: 300,
-    }
-    return config
-  },
-}
 
-module.exports = nextConfig
-// atau export default nextConfig;
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'appraiser-pasty-helpline.ngrok-free.dev',
+      },
+    ],
+  },
+};
+
+module.exports = nextConfig;

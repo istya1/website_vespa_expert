@@ -68,25 +68,28 @@ const fetchData = async () => {
   try {
     setLoading(true);
     const token = localStorage.getItem('token');
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/admin/servis?per_page=100`,
-      {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          Accept: 'application/json',
-        },
-      }
-    );
+
+    const res = await fetch('/api/admin/servis?per_page=100', {   // ← Pakai ini
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+      },
+    });
+
+    if (!res.ok) {
+      console.error('Status:', res.status);
+      const errorText = await res.text();
+      console.error('Error body:', errorText);
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+
     const json = await res.json();
-    
     console.log('FULL JSON:', json);
-    console.log('DATA:', json.data);
-    console.log('DATA.DATA:', json.data?.data);
-    console.log('ITEM PERTAMA:', json.data?.data?.[0]);
     
     setData(json.data?.data ?? json.data ?? []);
   } catch (err) {
-    console.error('Error:', err);
+    console.error('Fetch Error:', err);
     toast.error('Gagal memuat data ganti oli');
   } finally {
     setLoading(false);

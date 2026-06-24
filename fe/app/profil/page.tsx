@@ -56,14 +56,25 @@ export default function ProfilePage() {
 
   useEffect(() => { fetchProfile(); }, []);
 
+  // Ganti fungsi getPhotoUrl dengan ini:
   const getPhotoUrl = (foto?: string) => {
     if (!foto) return '';
 
+    // Jika sudah full URL
     if (foto.startsWith('http')) {
       return foto;
     }
 
-    return `${process.env.NEXT_PUBLIC_IMAGE_URL}/storage/${foto}`;
+    // Bersihkan path
+    let path = foto.startsWith('/') ? foto.substring(1) : foto;
+
+    // Pastikan ada folder storage
+    if (!path.startsWith('storage/')) {
+      path = `storage/${path}`;
+    }
+
+    // PAKAI PROXY Next.js (paling stabil untuk ngrok)
+    return `/storage/${path.replace('storage/', '')}`;
   };
 
   const fetchProfile = async () => {
@@ -311,7 +322,19 @@ export default function ProfilePage() {
               <div className="relative mb-3">
                 <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border-4 border-white shadow-md">
                   {previewImage ? (
-                    <img src={previewImage} alt={user.nama} className="w-full h-full object-cover" />
+                    <img
+                      src={previewImage}
+                      alt={user.nama}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.error('Image load failed:', previewImage);
+                        // Fallback ke avatar huruf
+                        e.currentTarget.style.display = 'none';
+                        // Atau bisa pakai ini jika mau pakai div avatar
+                        // e.currentTarget.src = '';
+                      }}
+                      referrerPolicy="no-referrer"
+                    />
                   ) : (
                     <div className="w-full h-full bg-primary-600 flex items-center justify-center">
                       <span className="text-white text-4xl font-bold">
