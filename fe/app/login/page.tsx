@@ -74,7 +74,7 @@ export default function LoginPage() {
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-8">
         {/* Logo */}
         <div className="flex justify-center mb-2">
-          <img src="/asset/logo.png" alt="Vespa Expert Logo" className="w-24 h-24 object-contain" />
+          <img src="/asset/Logo.png" alt="Vespa Expert Logo" className="w-24 h-24 object-contain" />
         </div>
         <h1 className="text-2xl font-bold text-center text-gray-800 mb-2">Vespa Matic Expert</h1>
         <p className="text-center text-gray-600 mb-8">Silakan login untuk melanjutkan</p>
