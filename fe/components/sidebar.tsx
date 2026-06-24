@@ -196,7 +196,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-6 ">
-        <img src="/asset/logo.png" className="w-16 h-16 object-contain" />
+        <img src="/asset/Logo.png" className="w-16 h-16 object-contain" />
         <div>
           <h1 className="text-xl font-bold text-gray-900">Vespa Matic</h1>
           <p className="text-xs text-gray-400">Expert Sistem</p>
