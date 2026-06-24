@@ -41,7 +41,7 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
+            'url'        => env('APP_URL', 'https://appraiser-pasty-helpline.ngrok-free.dev').'/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,

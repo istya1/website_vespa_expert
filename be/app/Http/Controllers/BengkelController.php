@@ -8,31 +8,7 @@ use Illuminate\Support\Facades\Storage;
 
 class BengkelController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | GET ALL BENGKEL
-    |--------------------------------------------------------------------------
-    */
-    public function index()
-    {
-        $data = Bengkel::with('layanan')
-            ->orderBy('urutan', 'asc')
-            ->get()
-            ->map(function ($item) {
 
-                $gambar = json_decode($item->gambar, true);
-
-                $item->gambar_url = $gambar
-                    ? collect($gambar)->map(function ($img) {
-                        return asset('storage/' . $img);
-                    })
-                    : [];
-
-                return $item;
-            });
-
-        return response()->json($data);
-    }
 
     /*
     |--------------------------------------------------------------------------
@@ -86,12 +62,28 @@ class BengkelController extends Controller
         ]);
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | SHOW DETAIL
-    |--------------------------------------------------------------------------
-    */
-    public function show($id)
+    public function index()
+    {
+        $data = Bengkel::with('layanan')
+            ->orderBy('urutan', 'asc')
+            ->get()
+            ->map(function ($item) {
+
+                $gambar = json_decode($item->gambar, true);
+
+                $item->gambar_url = $gambar
+                    ? collect($gambar)->map(function ($img) {
+                        return Storage::disk('public')->url($img);
+                    })
+                    : [];
+
+                return $item;
+            });
+
+        return response()->json($data);
+    }
+
+    public function show(int $id)
     {
         $bengkel = Bengkel::with('layanan')->findOrFail($id);
 
@@ -99,7 +91,7 @@ class BengkelController extends Controller
 
         $bengkel->gambar_url = $gambar
             ? collect($gambar)->map(function ($img) {
-                return config('app.url') . '/storage/' . $img;
+                return Storage::disk('public')->url($img);
             })
             : [];
 
