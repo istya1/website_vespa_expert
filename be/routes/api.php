@@ -129,7 +129,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/kerusakan/{kode}', [KerusakanDiagnosisController::class, 'getDetailKerusakan']);
         Route::post('/proses-diagnosis', [KerusakanDiagnosisController::class, 'prosesDiagnosis']);
         Route::get('/diagnosis/pertanyaan-awal', [KerusakanDiagnosisController::class, 'getPertanyaanAwal']);
-        
+
         // Pastikan mengarah ke method yang benar
         Route::post('/mobile/proses-diagnosis', [KerusakanDiagnosisController::class, 'prosesDiagnosis']);
         Route::get('/bengkel', [BengkelController::class, 'index']);
@@ -169,6 +169,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/admin/servis', [ServisController::class, 'adminIndex']);
     });
 
+    Route::middleware('auth:sanctum')->get('/debug-auth-header', function (Request $request) {
+        return response()->json([
+            'user' => $request->user(),
+            'authorization_header' => $request->header('Authorization'),
+        ]);
+    });
+
     // Tambahkan di dalam Route::middleware('auth:sanctum')
     // ── Notifikasi ─────────────────────────────────────
     Route::get('/notifikasi', function (Request $request) {
@@ -183,6 +190,7 @@ Route::middleware('auth:sanctum')->group(function () {
             'data'     => $notifs,
         ]);
     });
+
 
     Route::post('/notifikasi/catat-lokal', function (Request $request) {
         $validated = $request->validate([

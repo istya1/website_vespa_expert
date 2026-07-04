@@ -14,7 +14,7 @@ use Carbon\Carbon;
 
 class AuthController extends Controller
 {
-    
+
     /**
      * Proses login pengguna
      */
@@ -58,35 +58,57 @@ class AuthController extends Controller
     {
         // Validasi data registrasi
         $validator = Validator::make($request->all(), [
-            'nama'         => 'required|string|max:255',
-            'email'        => 'required|string|email|max:255|unique:user,email',   // ← diperbaiki
-            'password'     => 'required|string|min:6',
-            'no_hp'        => 'nullable|string|max:20',
-            'alamat'       => 'nullable|string',
-            'jenis_motor' => 'required|string|in:Primavera 150,Primavera S 150,LX 125,Sprint 150,Sprint S 150',
+            'nama'            => 'required|string|max:255',
+            'email'           => 'required|string|email|max:255|unique:user,email',
+            'password'        => 'required|string|min:6',
+            'no_hp'           => 'nullable|string|max:20',
+            'alamat'          => 'nullable|string',
+            'jenis_motor'     => 'required|string|in:Primavera 150,Primavera S 150,LX 125,Sprint 150,Sprint S 150',
+
+            // TAMBAHAN: field kendaraan, diisi bareng di form register
+            'nomor_plat'      => 'required|string|max:20',
+            'tahun_kendaraan' => 'nullable|integer|min:1980|max:' . (date('Y') + 1),
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        // Gunakan DB transaction: insert user + insert kendaraan dianggap
+        // SATU kesatuan operasi. Kalau salah satu gagal, semua di-rollback.
         try {
-            // Buat user baru
-            $user = User::create([
-                'nama'              => $request->nama,
-                'email'             => $request->email,
-                'password'          => Hash::make($request->password),
-                'role'              => 'pengguna',
-                'no_hp'             => $request->no_hp,
-                'alamat'            => $request->alamat ?? null,
-                'jenis_motor'      => $request->jenis_motor,
-                'email_verified_at' => null,        // Belum diverifikasi
-            ]);
+            $user = DB::transaction(function () use ($request) {
 
-            // Generate token verifikasi email
+                // 1. Buat user baru (sama seperti sebelumnya)
+                $user = User::create([
+                    'nama'              => $request->nama,
+                    'email'             => $request->email,
+                    'password'          => Hash::make($request->password),
+                    'role'              => 'pengguna',
+                    'no_hp'             => $request->no_hp,
+                    'alamat'            => $request->alamat ?? null,
+                    'jenis_motor'       => $request->jenis_motor,
+                    'email_verified_at' => null,
+                ]);
+
+                // 2. TAMBAHAN: langsung buat 1 kendaraan default untuk user ini
+                //    SESUAIKAN nama kolom FK ('id_user') kalau ternyata beda
+                //    di migration tabel kendaraan Anda.
+                DB::table('kendaraan')->insert([
+                    'user_id' => $user->id_user,
+                    'nama_kendaraan' => $request->jenis_motor,
+                    'nomor_plat' => $request->nomor_plat,
+                    'tahun_kendaraan' => $request->tahun_kendaraan,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                return $user;
+            });
+
+            // Generate token verifikasi email (sama seperti sebelumnya)
             $verifyToken = Str::random(64);
 
-            // Simpan token verifikasi ke tabel email_verifications
             DB::table('email_verifications')->updateOrInsert(
                 ['email' => $user->email],
                 [
@@ -95,10 +117,8 @@ class AuthController extends Controller
                 ]
             );
 
-            // Buat link verifikasi
             $verifyLink = config('app.url') . "/api/verify-email?token={$verifyToken}&email={$user->email}";
 
-            // Kirim email verifikasi menggunakan Mail::raw
             Mail::raw(
                 "Halo {$user->nama},\n\n" .
                     "Terima kasih telah mendaftar.\n\n" .

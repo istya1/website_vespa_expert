@@ -194,18 +194,33 @@ class UserController extends Controller
 
             // Simpan foto baru
             $file = $request->file('foto');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $path = $file->storeAs('users', $filename, 'public');   // folder: storage/app/public/users
 
-            // Update path foto di database
-            $user->update(['foto' => $path]);
+            if (!$file) {
+                return response()->json([
+                    'message' => 'File tidak diterima',
+                ], 400);
+            }
 
-            // Generate URL lengkap untuk foto
-            $fotoUrl = config('app.url') . '/storage/' . $path; // ← ganti dari url(Storage::url())
+            $filename = time().'_'.$file->getClientOriginalName();
+
+            $path = $file->storeAs(
+                'users',
+                $filename,
+                'public'
+            );
+
+            if (!$path) {
+                return response()->json([
+                    'message' => 'storeAs gagal'
+                ], 500);
+            }
+
+            $user->foto = $path;
+            $user->save();
 
             return response()->json([
-                'message' => 'Foto berhasil diupload',
-                'foto'    => $fotoUrl
+                'path' => $path,
+                'exists' => Storage::disk('public')->exists($path),
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
@@ -213,8 +228,8 @@ class UserController extends Controller
             ], 404);
         } catch (\Exception $e) {
             return response()->json([
-                'message' => 'Gagal mengupload foto',
-                'error'   => $e->getMessage()
+                'message' => 'Gagal mengunggah foto',
+                'error' => $e->getMessage()
             ], 500);
         }
     }

@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 
 class User extends Authenticatable
 {
@@ -15,7 +14,6 @@ class User extends Authenticatable
     protected $primaryKey = 'id_user';
     public $incrementing = true;
     protected $keyType = 'int';
-
 
     protected $fillable = [
         'email',
@@ -36,23 +34,26 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    public $timestamps = true;
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+    ];
 
-    // Relasi ke diagnosa
+    // ==========================
+    // RELASI
+    // ==========================
+
     public function diagnosa()
     {
         return $this->hasMany(Diagnosa::class, 'id_user', 'id_user');
     }
 
-    // app/Models/User.php — tambahkan relasi ini ke model User yang sudah ada
-    public function kendaraan()
-    {
-        return $this->hasMany(Kendaraan::class);
-    }
+public function kendaraan()
+{
+    return $this->hasMany(Kendaraan::class, 'user_id', 'id_user');
+}
 
     public function catatanServis()
     {
-        return $this->hasMany(CatatanServis::class);
+        return $this->hasMany(CatatanServis::class, 'id_user', 'id_user');
     }
-
 }

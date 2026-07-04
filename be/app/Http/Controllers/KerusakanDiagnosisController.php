@@ -21,7 +21,7 @@ class KerusakanDiagnosisController extends Controller
         // Ambil gejala terpilih dari request. Ada 2 nama field yang dicoba
         // (gejala_terpilih ATAU gejala) — kemungkinan untuk kompatibilitas
         // kalau frontend pernah ganti nama field, atau ada 2 versi client berbeda
-        $gejalaTerpilih = $request->gejala_terpilih ?? $request->gejala ?? [];
+        $gejalaTerpilih = $request->gejala_terpilih ?? $request->gejala ?? []; //Metode Forward chaining
         $jenisMotor     = $request->jenis_motor;
 
         // Logging untuk debug — supaya developer bisa cek di log
