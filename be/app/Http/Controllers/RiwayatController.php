@@ -6,7 +6,7 @@ use App\Models\riwayat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-class RiwayatDiagnosisController extends Controller
+class RiwayatController extends Controller
 {
     /**
      * GET /api/mobile/diagnosa
