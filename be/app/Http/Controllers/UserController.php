@@ -172,7 +172,7 @@ class UserController extends Controller
      */
     public function uploadPhoto(Request $request, int $id_user)
     {
-         dd('UPLOAD CONTROLLER VPS');
+       
         // Validasi file foto
         $validator = Validator::make($request->all(), [
             'foto' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // max 2MB
