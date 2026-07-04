@@ -102,7 +102,7 @@ class UserController extends Controller
      * Mengupdate data profil user
      * jenis_motor tetap bisa diupdate di sini
      */
-   public function update(Request $request, int $id_user)
+    public function update(Request $request, int $id_user)
     {
         try {
             // Cari user, jika tidak ditemukan langsung error 404
@@ -201,27 +201,31 @@ class UserController extends Controller
                 ], 400);
             }
 
-            $filename = time().'_'.$file->getClientOriginalName();
+            $filename = time() . '_' . $file->getClientOriginalName();
 
-            $path = $file->storeAs(
-                'users',
-                $filename,
-                'public'
-            );
-
-            if (!$path) {
+            try {
+                Storage::disk('public')->putFileAs(
+                    'users',
+                    $file,
+                    $filename
+                );
+            } catch (\Throwable $e) {
                 return response()->json([
-                    'message' => 'storeAs gagal'
+                    'message' => 'Storage gagal',
+                    'error' => $e->getMessage(),
                 ], 500);
             }
+
+            $path = "users/" . $filename;
 
             $user->foto = $path;
             $user->save();
 
             return response()->json([
-                'path' => $path,
-                'exists' => Storage::disk('public')->exists($path),
+                'message' => 'Foto berhasil diupload',
+                'foto' => asset('storage/' . $path),
             ]);
+            
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'message' => 'User tidak ditemukan'
@@ -237,7 +241,7 @@ class UserController extends Controller
     /**
      * Mengubah password user (dengan verifikasi password lama)
      */
-   public function changePassword(Request $request, int $id_user)
+    public function changePassword(Request $request, int $id_user)
     {
         $validator = Validator::make($request->all(), [
             'oldPassword' => 'required|string',
