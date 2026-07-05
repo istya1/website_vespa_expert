@@ -144,46 +144,74 @@ class ServisController extends Controller
      * lalu menentukan status kondisi oli saat ini.
      */
     public function store(Request $request)
-    {
-        // Validasi input dari frontend
-        $validated = $request->validate([
-            'kendaraan_id'          => 'required|integer',
-            'km_sekarang'           => 'required|integer|min:0',
-            'rata_rata_km_per_hari' => 'required|integer|min:1',
-            'interval_ganti_oli'    => 'nullable|integer|min:1',
-            'expo_push_token'       => 'nullable|string',
+{
+    // Validasi input
+    $validated = $request->validate([
+        'kendaraan_id'          => 'required|integer',
+        'km_sekarang'           => 'required|integer|min:0',
+        'rata_rata_km_per_hari' => 'required|integer|min:1',
+        'interval_ganti_oli'    => 'nullable|integer|min:1',
+        'expo_push_token'       => 'nullable|string',
+    ]);
+
+    $userId = $request->user()->id_user;
+
+    // Pastikan kendaraan milik user
+    $kendaraan = Kendaraan::where('id', $validated['kendaraan_id'])
+        ->where('user_id', $userId)
+        ->firstOrFail();
+
+    // Simpan Expo Push Token jika ada
+    if (!empty($validated['expo_push_token'])) {
+        $request->user()->update([
+            'expo_push_token' => $validated['expo_push_token']
+        ]);
+    }
+
+    // ===============================
+    // Hitung target servis
+    // ===============================
+    $interval     = $validated['interval_ganti_oli'] ?? 3000;
+    $kmTarget     = $validated['km_sekarang'] + $interval;
+    $hariDeadline = (int) ceil($interval / $validated['rata_rata_km_per_hari']);
+    $deadline     = Carbon::now()->addDays($hariDeadline);
+    $mulaiNotif   = $deadline->copy()->subDays(7);
+
+    // ===============================
+    // Cek apakah masih ada monitoring aktif
+    // ===============================
+    $servis = CatatanServis::where('kendaraan_id', $kendaraan->id)
+        ->where('sudah_ganti_oli', 0)
+        ->latest('waktu_input')
+        ->first();
+
+    // ===============================
+    // UPDATE jika monitoring masih aktif
+    // ===============================
+    if ($servis) {
+
+        $statusLama = $servis->status_terakhir;
+
+        $servis->update([
+            'km_sekarang'               => $validated['km_sekarang'],
+            'rata_rata_km_per_hari'     => $validated['rata_rata_km_per_hari'],
+            'interval_ganti_oli'        => $interval,
+            'waktu_input'               => Carbon::now(),
+            'km_target_oli'             => $kmTarget,
+            'estimasi_tanggal_deadline' => $deadline,
+            'tanggal_mulai_notif'       => $mulaiNotif,
         ]);
 
-        $userId = $request->user()->id_user;
+        // Refresh model supaya accessor ikut berubah
+        $servis = $servis->fresh();
 
-        // Pastikan kendaraan milik user yang login
-        $kendaraan = Kendaraan::where('id', $validated['kendaraan_id'])
-            ->where('user_id', $userId)
-            ->firstOrFail();
+    } else {
 
-        // Simpan expo_push_token ke tabel users
-        // Token ini dipakai untuk push notification di masa mendatang
-        if (!empty($validated['expo_push_token'])) {
-            $request->user()->update(['expo_push_token' => $validated['expo_push_token']]);
-        }
+        // ===============================
+        // CREATE jika belum ada monitoring
+        // ===============================
+        $statusLama = null;
 
-        // Hitung target KM dan estimasi deadline
-        $interval     = $validated['interval_ganti_oli'] ?? 3000; // default 3000 km
-        $kmTarget     = $validated['km_sekarang'] + $interval;    // target KM harus ganti oli
-        $hariDeadline = (int) ceil($interval / $validated['rata_rata_km_per_hari']); // estimasi hari
-        $deadline     = Carbon::now()->addDays($hariDeadline);    // estimasi tanggal deadline
-        $mulaiNotif   = $deadline->copy()->subDays(7);            // mulai notif H-7 sebelum deadline
-
-        // Ambil status_terakhir dari data servis sebelumnya
-        // untuk dibandingkan dengan status baru (apakah naik level atau tidak)
-        $servisSebelumnya = CatatanServis::where('kendaraan_id', $kendaraan->id)
-            ->where('sudah_ganti_oli', 0)
-            ->latest('waktu_input')
-            ->first();
-
-        $statusLama = $servisSebelumnya?->status_terakhir; // null jika belum ada data sebelumnya
-
-        // Simpan data servis baru ke tabel catatan_servis
         $servis = CatatanServis::create([
             'kendaraan_id'              => $kendaraan->id,
             'user_id'                   => $userId,
@@ -195,30 +223,37 @@ class ServisController extends Controller
             'estimasi_tanggal_deadline' => $deadline,
             'tanggal_mulai_notif'       => $mulaiNotif,
         ]);
-
-        // Hitung status baru dari sisa_km (diambil dari accessor Model)
-        $sisaKm     = $servis->sisa_km;
-        $statusBaru = $this->tentukanStatus($sisaKm);
-
-        // Cek apakah status naik level (untuk info ke frontend)
-        $naikLevel  = $this->statusNaikLevel($statusLama, $statusBaru);
-
-        // Simpan status_terakhir ke tabel catatan_servis
-        // Dipakai sebagai pembanding saat input KM berikutnya
-        $servis->update(['status_terakhir' => $statusBaru]);
-
-        // Kembalikan response ke frontend
-        // Frontend akan menjadwalkan local notification berdasarkan status_kondisi ini
-        return response()->json([
-            'berhasil' => true,
-            'pesan'    => 'Data servis berhasil disimpan',
-            'data'     => [
-                'status_kondisi'      => $statusBaru,
-                'sisa_km'             => $sisaKm,
-                'notifikasi_terkirim' => $naikLevel, // true jika status naik level
-            ],
-        ]);
     }
+
+    // ===============================
+    // Hitung status terbaru
+    // ===============================
+    $sisaKm     = $servis->sisa_km;
+    $statusBaru = $this->tentukanStatus($sisaKm);
+
+    // Cek apakah status naik level
+    $naikLevel = $this->statusNaikLevel($statusLama, $statusBaru);
+
+    // Simpan status terbaru
+    $servis->update([
+        'status_terakhir' => $statusBaru
+    ]);
+
+    return response()->json([
+        'berhasil' => true,
+        'pesan'    => $statusLama === null
+            ? 'Monitoring servis berhasil dibuat'
+            : 'Monitoring servis berhasil diperbarui',
+        'data' => [
+            'id'                   => $servis->id,
+            'status_kondisi'       => $statusBaru,
+            'sisa_km'              => $sisaKm,
+            'estimasi_km_sekarang' => $servis->estimasi_km_sekarang,
+            'sisa_hari'            => $servis->sisa_hari,
+            'notifikasi_terkirim'  => $naikLevel,
+        ]
+    ]);
+}
 
     /**
      * PATCH /servis/{id}/konfirmasi
