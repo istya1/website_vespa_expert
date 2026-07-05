@@ -87,4 +87,6 @@ class CatatanServis extends Model
         if ($sisaKm <= 30) return 'segera';
         return 'aman';
     }
+
+    protected $appends = ['estimasi_km_sekarang', 'sisa_km', 'sisa_hari', 'status_kondisi'];
 }
