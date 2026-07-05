@@ -30,9 +30,9 @@ class ServisController extends Controller
      */
     private function tentukanStatus(int $sisaKm): string
     {
-        if ($sisaKm <= 10) {
+        if ($sisaKm <= 150) {
             return 'kritis'; // → warna merah di aplikasi
-        } elseif ($sisaKm <= 30) {
+        } elseif ($sisaKm <= 450) {
             return 'segera'; // → warna kuning di aplikasi
         }
         return 'aman'; // → warna biru di aplikasi
@@ -168,7 +168,7 @@ class ServisController extends Controller
         }
 
         // Hitung target KM dan estimasi deadline
-        $interval     = $validated['interval_ganti_oli'] ?? 4000; // default 4000 km
+        $interval     = $validated['interval_ganti_oli'] ?? 3000; // default 3000 km
         $kmTarget     = $validated['km_sekarang'] + $interval;    // target KM harus ganti oli
         $hariDeadline = (int) ceil($interval / $validated['rata_rata_km_per_hari']); // estimasi hari
         $deadline     = Carbon::now()->addDays($hariDeadline);    // estimasi tanggal deadline

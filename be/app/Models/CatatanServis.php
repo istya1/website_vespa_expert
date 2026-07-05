@@ -70,23 +70,21 @@ class CatatanServis extends Model
         return max(0, (int) now()->diffInDays($this->estimasi_tanggal_deadline, false));
     }
 
-    /**
-     * ✅ Status kondisi berbasis SISA KM (bukan tanggal/hari lagi).
-     *
-     * sisa_km > 30   -> aman
-     * 10 < sisa_km <= 30 -> segera
-     * sisa_km <= 10  -> kritis
-     */
-    public function getStatusKondisiAttribute(): string
-    {
-        if ($this->sudah_ganti_oli) return 'selesai';
-
-        $sisaKm = $this->sisa_km;
-
-        if ($sisaKm <= 10) return 'kritis';
-        if ($sisaKm <= 30) return 'segera';
-        return 'aman';
-    }
+   /**
+ * ✅ Status kondisi berbasis SISA KM.
+ * Threshold disesuaikan untuk interval ganti oli 3000 km:
+ * sisa_km > 450       -> aman
+ * 150 < sisa_km <= 450 -> segera
+ * sisa_km <= 150      -> kritis
+ */
+public function getStatusKondisiAttribute(): string
+{
+    if ($this->sudah_ganti_oli) return 'selesai';
+    $sisaKm = $this->sisa_km;
+    if ($sisaKm <= 150) return 'kritis';
+    if ($sisaKm <= 450) return 'segera';
+    return 'aman';
+}
 
     protected $appends = ['estimasi_km_sekarang', 'sisa_km', 'sisa_hari', 'status_kondisi'];
 }
