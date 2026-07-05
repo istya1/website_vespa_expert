@@ -132,9 +132,9 @@ class KerusakanDiagnosisController extends Controller
                     'status'               => 'final',
                 ];
 
-            // ========================
-            // CASE B: PARTIAL MATCH
-            // ========================
+                // ========================
+                // CASE B: PARTIAL MATCH
+                // ========================
             } else {
 
                 // Kalau kerusakan ini SUDAH dipastikan lewat rule lain
@@ -183,7 +183,9 @@ class KerusakanDiagnosisController extends Controller
 
         // Urutkan dari yang paling besar persentase kecocokannya
         // -> supaya user lihat kemungkinan paling relevan duluan
-        usort($kemungkinanKerusakan, fn($a, $b) =>
+        usort(
+            $kemungkinanKerusakan,
+            fn($a, $b) =>
             $b['kecocokan']['persentase'] <=> $a['kecocokan']['persentase']
         );
 
@@ -357,11 +359,15 @@ class KerusakanDiagnosisController extends Controller
             ];
         }
 
-        $totalRepresentatif = count($pertanyaanAwal);
+        // Dedupe: kalau ada 2 rule berbeda yang kebetulan pilih gejala
+        // yang sama persis sebagai wakil, cukup tampilkan sekali saja
+        $pertanyaanAwalUnik = collect($pertanyaanAwal)
+            ->unique('kode_gejala')
+            ->values();
 
-        // Kelompokkan gejala wakil ini berdasarkan kategori_id
-        // -> INILAH yang menjadi gejala_by_kategori yang diterima PilihGejalaScreen di mobile!
-        $gejalaByKategori = collect($pertanyaanAwal)
+        $totalRepresentatif = $pertanyaanAwalUnik->count();
+
+        $gejalaByKategori = $pertanyaanAwalUnik
             ->groupBy(fn($item) => $item['kategori_id'] ?? 'lainnya')
             ->map(fn($items) => $items->map(fn($item) => [
                 'id_aturan'   => $item['id_aturan'],
