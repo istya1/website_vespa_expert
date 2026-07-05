@@ -18,15 +18,22 @@ api.interceptors.request.use((config) => {
 
 export interface DataServis {
   id: number;
-  user: { name: string; email: string };
+  user: { id_user: number; nama: string; email: string };
   kendaraan: { nama_kendaraan: string; nomor_plat: string };
-  estimasi_km_sekarang: number;
+  km_sekarang: number;
   km_target_oli: number;
+  rata_rata_km_per_hari: number;
+  interval_ganti_oli: number;
+  waktu_input: string;
+  estimasi_tanggal_deadline: string;
+  tanggal_mulai_notif: string;
+  sudah_ganti_oli: boolean;
+  tanggal_ganti_oli: string | null;
+  // TAMBAHAN — accessor dari backend (Model CatatanServis)
+  estimasi_km_sekarang: number;
   sisa_km: number;
   sisa_hari: number;
   status_kondisi: 'aman' | 'segera' | 'kritis' | 'selesai';
-  estimasi_tanggal_deadline: string;
-  sudah_ganti_oli?: boolean;
 }
 
 export const servisApi = {

@@ -8,102 +8,77 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
-
-interface DataServis {
-  id: number;
-  user: { id_user: number; nama: string; email: string };
-  kendaraan: { nama_kendaraan: string; nomor_plat: string };
-  km_sekarang: number;
-  km_target_oli: number;
-  rata_rata_km_per_hari: number;
-  interval_ganti_oli: number;
-  waktu_input: string;
-  estimasi_tanggal_deadline: string;
-  tanggal_mulai_notif: string;
-  sudah_ganti_oli: boolean;
-  tanggal_ganti_oli: string | null;
-}
+import { DataServis } from '@/services/servis-service';
 
 const STATUS_COLORS = {
-  aman:    { bg: 'bg-blue-50',   text: 'text-blue-700',   border: 'border-blue-100',   hex: '#3b82f6', label: 'Aman'         },
-  segera:  { bg: 'bg-amber-50',  text: 'text-amber-700',  border: 'border-amber-100',  hex: '#f59e0b', label: 'Segera Ganti' },
-  kritis:  { bg: 'bg-red-50',    text: 'text-red-700',    border: 'border-red-100',    hex: '#ef4444', label: 'Kritis'       },
-  selesai: { bg: 'bg-green-50',  text: 'text-green-700',  border: 'border-green-100',  hex: '#10b981', label: 'Selesai'      },
+  aman: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-100', hex: '#3b82f6', label: 'Aman' },
+  segera: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-100', hex: '#f59e0b', label: 'Segera Ganti' },
+  kritis: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-100', hex: '#ef4444', label: 'Kritis' },
+  selesai: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-100', hex: '#10b981', label: 'Selesai' },
 };
 
 function hitungStatus(item: DataServis): keyof typeof STATUS_COLORS {
-  if (item.sudah_ganti_oli) return 'selesai';
-  const sisaHari = Math.max(0, Math.ceil(
-    (new Date(item.estimasi_tanggal_deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-  ));
-  if (sisaHari <= 1)  return 'kritis';
-  if (sisaHari <= 7)  return 'segera';
-  return 'aman';
+  return item.status_kondisi;
 }
 
-function hitungSisaHari(deadline: string): number {
-  return Math.max(0, Math.ceil(
-    (new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-  ));
+function hitungSisaHari(item: DataServis): number {
+  return item.sisa_hari;
 }
 
 function hitungEstimasiKm(item: DataServis): number {
-  const hariBerlalu = Math.floor(
-    (Date.now() - new Date(item.waktu_input).getTime()) / (1000 * 60 * 60 * 24)
-  );
-  return item.km_sekarang + (item.rata_rata_km_per_hari * hariBerlalu);
+  return item.estimasi_km_sekarang;
 }
 
-const BULAN_LABEL = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+const BULAN_LABEL = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
 export default function RiwayatGantiOliPage() {
-  const [data, setData]           = useState<DataServis[]>([]);
-  const [loading, setLoading]     = useState(true);
+  const [data, setData] = useState<DataServis[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('Semua');
-  const [currentPage, setCurrentPage]   = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-const fetchData = async () => {
-  try {
-    setLoading(true);
-    const token = localStorage.getItem('token');
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
 
-    const res = await fetch('/api/admin/servis?per_page=100', {   // ← Pakai ini
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/json',
-        'ngrok-skip-browser-warning': 'true',
-      },
-    });
+      const res = await fetch('/api/admin/servis?per_page=100', {   // ← Pakai ini
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+        },
+      });
 
-    if (!res.ok) {
-      console.error('Status:', res.status);
-      const errorText = await res.text();
-      console.error('Error body:', errorText);
-      throw new Error(`HTTP error! status: ${res.status}`);
+      if (!res.ok) {
+        console.error('Status:', res.status);
+        const errorText = await res.text();
+        console.error('Error body:', errorText);
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const json = await res.json();
+      console.log('FULL JSON:', json);
+
+      setData(json.data?.data ?? json.data ?? []);
+    } catch (err) {
+      console.error('Fetch Error:', err);
+      toast.error('Gagal memuat data ganti oli');
+    } finally {
+      setLoading(false);
     }
-
-    const json = await res.json();
-    console.log('FULL JSON:', json);
-    
-    setData(json.data?.data ?? json.data ?? []);
-  } catch (err) {
-    console.error('Fetch Error:', err);
-    toast.error('Gagal memuat data ganti oli');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   useEffect(() => { fetchData(); }, []);
 
   // ── Summary cards ──────────────────────────────────────────────────────
   const summary = useMemo(() => {
-    const total    = data.length;
-    const selesai  = data.filter(d => d.sudah_ganti_oli).length;
-    const kritis   = data.filter(d => hitungStatus(d) === 'kritis').length;
-    const segera   = data.filter(d => hitungStatus(d) === 'segera').length;
+    const total = data.length;
+    const selesai = data.filter(d => d.sudah_ganti_oli).length;
+    const kritis = data.filter(d => hitungStatus(d) === 'kritis').length;
+    const segera = data.filter(d => hitungStatus(d) === 'segera').length;
     return { total, selesai, kritis, segera };
   }, [data]);
 
@@ -114,7 +89,7 @@ const fetchData = async () => {
     return Object.entries(map)
       .filter(([, v]) => v > 0)
       .map(([key, value]) => ({
-        name:  STATUS_COLORS[key as keyof typeof STATUS_COLORS].label,
+        name: STATUS_COLORS[key as keyof typeof STATUS_COLORS].label,
         value,
         color: STATUS_COLORS[key as keyof typeof STATUS_COLORS].hex,
       }));
@@ -150,8 +125,8 @@ const fetchData = async () => {
     });
   }, [data, searchTerm, filterStatus]);
 
-  const totalPages     = Math.ceil(filtered.length / itemsPerPage);
-  const paginated      = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const formatTanggal = (d?: string | null) => {
     if (!d) return '-';
@@ -321,10 +296,10 @@ const fetchData = async () => {
                     </tr>
                   ) : (
                     paginated.map(d => {
-                      const status    = hitungStatus(d);
-                      const warna     = STATUS_COLORS[status];
-                      const sisaHari  = hitungSisaHari(d.estimasi_tanggal_deadline);
-                      const estKm     = hitungEstimasiKm(d);
+                      const status = hitungStatus(d);
+                      const warna = STATUS_COLORS[status];
+                      const sisaHari = hitungSisaHari(d);
+                      const estKm = hitungEstimasiKm(d);
 
                       return (
                         <tr key={d.id} className="hover:bg-gray-50 transition-colors">
@@ -343,10 +318,9 @@ const fetchData = async () => {
                             {d.km_target_oli.toLocaleString('id-ID')}
                           </td>
                           <td className="px-4 py-3 text-right">
-                            <span className={`font-semibold ${
-                              sisaHari <= 1 ? 'text-red-600' :
-                              sisaHari <= 7 ? 'text-amber-600' : 'text-gray-700'
-                            }`}>
+                            <span className={`font-semibold ${sisaHari <= 1 ? 'text-red-600' :
+                                sisaHari <= 7 ? 'text-amber-600' : 'text-gray-700'
+                              }`}>
                               {d.sudah_ganti_oli ? '-' : `${sisaHari} hari`}
                             </span>
                           </td>
@@ -386,17 +360,16 @@ const fetchData = async () => {
                   {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
                     const page = totalPages <= 7 ? i + 1
                       : currentPage <= 4 ? i + 1
-                      : currentPage >= totalPages - 3 ? totalPages - 6 + i
-                      : currentPage - 3 + i;
+                        : currentPage >= totalPages - 3 ? totalPages - 6 + i
+                          : currentPage - 3 + i;
                     return (
                       <button
                         key={page}
                         onClick={() => setCurrentPage(page)}
-                        className={`min-w-[32px] h-8 rounded-lg text-sm font-medium transition-colors ${
-                          page === currentPage
+                        className={`min-w-[32px] h-8 rounded-lg text-sm font-medium transition-colors ${page === currentPage
                             ? 'bg-blue-600 text-white'
                             : 'border border-gray-200 hover:bg-gray-50 text-gray-600'
-                        }`}
+                          }`}
                       >
                         {page}
                       </button>
