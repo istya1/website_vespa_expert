@@ -19,7 +19,9 @@ class Bengkel extends Model
         'deskripsi',
         'gambar',
         'status',
-        'urutan'
+        'urutan',
+        'latitude',      
+        'longitude',
     ];
 
     public function layanan()
